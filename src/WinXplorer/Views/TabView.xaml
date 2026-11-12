@@ -1,0 +1,11 @@
+<UserControl x:Class="WinXplorer.Views.TabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:WinXplorer.Views">
+    <Grid x:Name="Host">
+        <v:PaneView x:Name="P1"/>
+        <GridSplitter x:Name="Splitter" Style="{StaticResource Splitter}" Visibility="Collapsed"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
+        <v:PaneView x:Name="P2" Visibility="Collapsed"/>
+    </Grid>
+</UserControl>

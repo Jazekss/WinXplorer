@@ -1,0 +1,151 @@
+<Window x:Class="WinXplorer.Views.ImageViewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:WinXplorer.Views"
+        Title="WinXplorer" Width="1100" Height="760" MinWidth="420" MinHeight="300" ShowInTaskbar="True"
+        Background="{DynamicResource ViewerBgBrush}" Foreground="{DynamicResource FgBrush}" FontFamily="{StaticResource UiFont}" FontSize="12"
+        UseLayoutRounding="True" WindowStartupLocation="Manual">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="42" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="VBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
+            <Setter Property="Foreground" Value="{DynamicResource FgBrush}"/>
+            <Setter Property="MinWidth" Value="36"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+        </Style>
+        <!-- invisible full-height click zone at the left / right edge -->
+        <Style x:Key="NavZone" TargetType="Button">
+            <Setter Property="Width" Value="120"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="#01000000">
+                            <Border x:Name="shade" Opacity="0" Background="{TemplateBinding Background}"/>
+                            <Border x:Name="pill" Width="44" Height="64" CornerRadius="8" Background="#99202020" Opacity="0"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="shade" Property="Opacity" Value="1"/>
+                                <Setter TargetName="pill" Property="Opacity" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="pill" Property="Background" Value="#CC303030"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="42"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- title bar (drag to move, double-click to maximize) -->
+        <Grid Background="{DynamicResource BarBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Margin="14,0" VerticalAlignment="Center">
+                <TextBlock x:Name="NameText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="520"/>
+                <TextBlock x:Name="InfoText" Foreground="{DynamicResource FgDimBrush}" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="4,4,0,4">
+                <Button Style="{StaticResource VBtn}" Click="Prev_Click" ToolTip="←"><TextBlock Text="&#xE76B;" Style="{StaticResource Glyph}" FontSize="13"/></Button>
+                <Button Style="{StaticResource VBtn}" Click="Next_Click" ToolTip="→"><TextBlock Text="&#xE76C;" Style="{StaticResource Glyph}" FontSize="13"/></Button>
+                <Border Width="1" Margin="6,8" Background="{DynamicResource BorderBrush}"/>
+                <Button Style="{StaticResource VBtn}" Click="ZoomOut_Click" ToolTip="−"><TextBlock Text="&#xE71F;" Style="{StaticResource Glyph}"/></Button>
+                <TextBlock x:Name="ZoomText" Width="38" TextAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource FgDimBrush}"/>
+                <Button Style="{StaticResource VBtn}" Click="ZoomIn_Click" ToolTip="+"><TextBlock Text="&#xE8A3;" Style="{StaticResource Glyph}"/></Button>
+                <Button Style="{StaticResource VBtn}" Click="Fit_Click" ToolTip="{v:T FitTip}"><TextBlock Text="&#xE9A6;" Style="{StaticResource Glyph}"/></Button>
+                <Button Style="{StaticResource VBtn}" Click="Actual_Click" ToolTip="100%"><TextBlock Text="1:1" FontWeight="SemiBold"/></Button>
+                <Button Style="{StaticResource VBtn}" Click="Rotate_Click" ToolTip="{v:T RotateTip}"><TextBlock Text="&#xE7AD;" Style="{StaticResource Glyph}"/></Button>
+                <Button Style="{StaticResource VBtn}" Click="Crop_Click" ToolTip="{v:T CropTip}"><TextBlock Text="&#xE7A8;" Style="{StaticResource Glyph}"/></Button>
+                <Border Width="1" Margin="6,8" Background="{DynamicResource BorderBrush}"/>
+                <Button Style="{StaticResource VBtn}" Click="OpenExternal_Click" ToolTip="{v:T OpenDefaultTip}"><TextBlock Text="&#xE8A7;" Style="{StaticResource Glyph}"/></Button>
+                <Button x:Name="InfoBtn" Style="{StaticResource VBtn}" Click="Info_Click" ToolTip="{v:T ViewerInfoTip}"><TextBlock Text="&#xE946;" Style="{StaticResource Glyph}"/></Button>
+                <Border Width="1" Margin="6,8" Background="{DynamicResource BorderBrush}"/>
+                <Button Style="{StaticResource VBtn}" Click="Max_Click" ToolTip="F11"><TextBlock x:Name="MaxGlyph" Text="&#xE922;" Style="{StaticResource Glyph}" FontSize="11"/></Button>
+                <Button Style="{StaticResource VBtn}" Click="Close_Click" ToolTip="{v:T ViewerCloseTip}"><TextBlock Text="&#xE8BB;" Style="{StaticResource Glyph}" FontSize="11"/></Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- image -->
+        <Grid Grid.Row="1" x:Name="Stage" ClipToBounds="True" Background="{DynamicResource ViewerBgBrush}"
+              MouseWheel="Stage_Wheel" MouseLeftButtonDown="Stage_Down" MouseLeftButtonUp="Stage_Up" MouseMove="Stage_Move">
+            <!-- Canvas: the image may be larger than the window; a Grid would clip it to its layout slot before zooming -->
+            <Canvas>
+                <Image x:Name="Img" RenderOptions.BitmapScalingMode="HighQuality" Stretch="Fill" RenderTransformOrigin="0,0"/>
+            </Canvas>
+            <!-- crop: drag a rectangle (or its corners / edges), Enter applies -->
+            <Canvas x:Name="CropLayer" Visibility="Collapsed" Background="#01000000">
+                <Path x:Name="CropShade" Fill="#A0000000"/>
+                <Path x:Name="CropGrid" Stroke="#60FFFFFF" StrokeThickness="1"/>
+                <Rectangle x:Name="CropBox" Stroke="#FFFFFF" StrokeThickness="1.5"/>
+            </Canvas>
+            <Border x:Name="CropBar" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,14"
+                    Background="{DynamicResource PopupBrush}" CornerRadius="8" Padding="10,6" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="CropSize" VerticalAlignment="Center" Foreground="{DynamicResource FgDimBrush}" MinWidth="96" Margin="2,0,10,0"/>
+                    <Button x:Name="CropOk" Style="{StaticResource AccentBtn}" Click="CropApply_Click" Margin="0,0,6,0" MinWidth="0" Padding="14,0" Height="30" Content="{v:T CropApply}"/>
+                    <Button Style="{StaticResource SubtleBtn}" Click="CropCopy_Click" Margin="0,0,6,0" Padding="12,0" Height="30" Foreground="{DynamicResource FgBrush}" Content="{v:T CropCopy}"/>
+                    <Button Style="{StaticResource SubtleBtn}" Click="CropCancel_Click" Padding="12,0" Height="30" Foreground="{DynamicResource FgBrush}" Content="{v:T Cancel}"/>
+                </StackPanel>
+            </Border>
+            <TextBlock x:Name="Status" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource FgDimBrush}" FontSize="14" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center"/>
+            <Button x:Name="PrevBtn" Style="{StaticResource NavZone}" HorizontalAlignment="Left" Click="Prev_Click" ToolTip="{v:T PrevImage}">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#40000000" Offset="0"/><GradientStop Color="#00000000" Offset="1"/></LinearGradientBrush>
+                </Button.Background>
+                <TextBlock Text="&#xE76B;" Style="{StaticResource Glyph}" FontSize="22" Foreground="#F2F2F2"/>
+            </Button>
+            <Button x:Name="NextBtn" Style="{StaticResource NavZone}" HorizontalAlignment="Right" Click="Next_Click" ToolTip="{v:T NextImage}">
+                <Button.Background>
+                    <LinearGradientBrush StartPoint="1,0" EndPoint="0,0"><GradientStop Color="#40000000" Offset="0"/><GradientStop Color="#00000000" Offset="1"/></LinearGradientBrush>
+                </Button.Background>
+                <TextBlock Text="&#xE76C;" Style="{StaticResource Glyph}" FontSize="22" Foreground="#F2F2F2"/>
+            </Button>
+            <!-- (i): picture details over the image, right side; stays until closed -->
+            <Border x:Name="InfoPanel" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,56,12"
+                    Width="220" Background="#E6161616" CornerRadius="8" BorderBrush="#30FFFFFF" BorderThickness="1" Padding="14,10,8,12">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource VBtn}" Click="Info_Click" MinWidth="28" MinHeight="26" Padding="4">
+                            <TextBlock Text="&#xE8BB;" Style="{StaticResource Glyph}" FontSize="10" Foreground="#E0E0E0"/>
+                        </Button>
+                        <TextBlock Text="{v:T Details}" FontWeight="SemiBold" Foreground="#F2F2F2" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="InfoRows"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- filmstrip -->
+        <ListBox Grid.Row="2" x:Name="Strip" Height="92" Background="{DynamicResource SidebarBrush}" BorderThickness="0" Padding="6,4"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Focusable="False"
+                 SelectionChanged="Strip_SelectionChanged" ItemContainerStyle="{StaticResource TileItem}">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Image Source="{Binding Thumbnail}" Width="96" Height="72" Margin="3" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" ToolTip="{Binding Name}"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</Window>

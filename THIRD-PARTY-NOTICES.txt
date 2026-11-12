@@ -1,0 +1,33 @@
+WinXplorer uses the following third-party components. Thank you to their authors.
+
+libheif 1.20.2 (libheif.dll) – HEIF / HEIC / AVIF decoding
+  https://github.com/strukturag/libheif
+  License: GNU Lesser General Public License v3.0 (LGPL-3.0)
+  Built from the official sources (LibHeif.Native.Runtime package, https://github.com/borka-s/LibHeif.Native.Runtime).
+  libheif.dll is a separate, dynamically loaded library: you may replace it with your own build of libheif.
+  Compiled into libheif.dll:
+    libde265 (HEVC decoder) – LGPL-3.0 – https://github.com/strukturag/libde265
+    dav1d (AV1 decoder) – BSD-2-Clause – https://code.videolan.org/videolan/dav1d
+    libaom (AV1 codec) – BSD-2-Clause – https://aomedia.googlesource.com/aom
+  The full LGPL-3.0 text: https://www.gnu.org/licenses/lgpl-3.0.html
+
+LibHeifSharp 3.2.0 – .NET bindings for libheif
+  https://github.com/0xC0000054/libheif-sharp
+  License: LGPL-3.0-or-later (used as an unmodified, separate assembly: LibHeifSharp.dll)
+
+SharpCompress – archives (zip, 7z, rar, tar…)
+  https://github.com/adamhathcock/sharpcompress – MIT License
+
+AvalonEdit – text and code view, multi-rename editor
+  https://github.com/icsharpcode/AvalonEdit – MIT License
+
+SharpVectors – SVG rendering
+  https://github.com/ElinamLLC/SharpVectors – BSD 3-Clause License
+
+VirtualizingWrapPanel – icon view
+  https://github.com/sbaeumlisberger/VirtualizingWrapPanel – MIT License
+
+Microsoft Visual C++ Runtime (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll)
+  Redistributed under the Microsoft Visual Studio license terms for redistributable code.
+
+.NET 8 runtime (installer only, self-contained build) – MIT License – https://github.com/dotnet/runtime

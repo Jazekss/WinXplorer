@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>WinXplorer</AssemblyName>
+    <RootNamespace>WinXplorer</RootNamespace>
+    <Product>WinXplorer</Product>
+    <Version>0.1.8</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="Exists('Assets\WinXplorer.ico')">Assets\WinXplorer.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <TieredPGO>true</TieredPGO>
+    <PlatformTarget>x64</PlatformTarget>
+    <NoWarn>CA1416;CS8632</NoWarn>
+  </PropertyGroup>
+
+  <!-- dotnet publish -c Release : precompiled (ReadyToRun) for fast cold start -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <DebugType>none</DebugType>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!-- libheif needs the Visual C++ runtime; shipped next to the app (Microsoft allows app-local copies) so PCs without the redistributable work too -->
+  <ItemGroup Condition="Exists('$(SystemRoot)\System32\vcruntime140_1.dll')">
+    <None Include="$(SystemRoot)\System32\msvcp140.dll" Link="msvcp140.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(SystemRoot)\System32\vcruntime140.dll" Link="vcruntime140.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(SystemRoot)\System32\vcruntime140_1.dll" Link="vcruntime140_1.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\WinXplorer.svg" Link="Assets\WinXplorer.svg" />
+    <Resource Include="..\..\WinXplorer_archive_dark.svg" Link="Assets\archive_dark.svg" />
+    <Resource Include="..\..\WinXplorer_archive_light.svg" Link="Assets\archive_light.svg" />
+    <EmbeddedResource Include="Languages\*.json" LogicalName="WinXplorer.Languages.%(Filename).json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+    <!-- HEIC / AVIF without Microsoft's Store codecs: libheif (with libde265 + dav1d/libaom) as a separate, replaceable DLL -->
+    <PackageReference Include="LibHeifSharp" Version="3.2.0" />
+    <PackageReference Include="LibHeif.Native.Runtime" Version="1.20.2" />
+    <PackageReference Include="SharpCompress" Version="0.50.8" />
+    <PackageReference Include="SharpVectors.Wpf" Version="1.8.6" />
+    <PackageReference Include="VirtualizingWrapPanel" Version="2.5.4" />
+  </ItemGroup>
+
+</Project>

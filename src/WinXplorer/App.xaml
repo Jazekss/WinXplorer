@@ -1,0 +1,17 @@
+﻿<Application x:Class="WinXplorer.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:WinXplorer.Views"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <v:PathIconConverter x:Key="PathIcon"/>
+            <v:InverseBoolToVis x:Key="InvBoolToVis"/>
+            <v:NullToVis x:Key="NullToVis"/>
+            <v:FractionToWidth x:Key="FracWidth"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
