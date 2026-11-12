@@ -87,3 +87,8 @@ Defaults – every one of them can be changed in Settings › Shortcuts & help.
 | Ctrl+, | Settings |
 | Ctrl+N | New window |
 | F5 | Refresh |
+
+## License
+
+WinXplorer is open source under the [MIT License](LICENSE) – use it, change it and share it freely.
+Third-party components keep their own licenses: [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
