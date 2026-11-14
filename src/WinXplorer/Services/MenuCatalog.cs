@@ -17,6 +17,10 @@ namespace WinXplorer.Services
     {
         public const string Separator = "sep";
         public const string ShellPrefix = "shell:";
+        /// <summary>"sub:&lt;id&gt;" opens a submenu (its name is the entry's Label); everything up to the matching "subend" goes into it.</summary>
+        public const string SubPrefix = "sub:";
+        public const string SubEnd = "subend";
+        public static bool IsSub(string id) => id != null && id.StartsWith(SubPrefix);
 
         public static readonly MenuCommand[] Commands =
         {
@@ -26,6 +30,11 @@ namespace WinXplorer.Services
             new("openWith", "OpenWith", "", MenuScope.Item),
             new("quickView", "QuickView", "", MenuScope.Item),
             new("openLocation", "OpenLocation", "", MenuScope.Item),
+            new("openTarget", "OpenTargetLocation", "", MenuScope.Item),
+            new("openNewWindow", "OpenNewWindow", "", MenuScope.Item),
+            new("openInExplorer", "OpenInExplorer", "", MenuScope.Both),
+            new("runAsAdmin", "RunAsAdmin", "", MenuScope.Item),
+            new("mount", "Mount", "", MenuScope.Item),
             new("cut", "Cut", "", MenuScope.Item),
             new("copy", "Copy", "", MenuScope.Item),
             new("paste", "Paste", "", MenuScope.Both),
@@ -37,6 +46,10 @@ namespace WinXplorer.Services
             new("pinStart", "PinStart", "", MenuScope.Item),
             new("pinTaskbar", "PinTaskbar", "", MenuScope.Item),
             new("copyPath", "CopyPath", "", MenuScope.Both),
+            new("copyName", "CopyName", "", MenuScope.Item),
+            new("copyTo", "CopyTo", "", MenuScope.Item),
+            new("moveTo", "MoveTo", "", MenuScope.Item),
+            new("selectAll", "SelectAll", "", MenuScope.Background),
             new("pinSidebar", "PinToSidebar", "", MenuScope.Both),
             new("terminal", "OpenTerminalHere", "", MenuScope.Both),
             new("sortBy", "Sort", "", MenuScope.Background),
@@ -88,7 +101,7 @@ namespace WinXplorer.Services
         private static List<MenuEntry> Make(params string[] ids) => ids.Select(i => new MenuEntry { Id = i, Enabled = true }).ToList();
 
         public static List<MenuEntry> DefaultItemMenu() => Make(
-            "open", "openNewTab", "openOtherPane", "openWith", "quickView", "openLocation", Separator,
+            "open", "openNewTab", "openOtherPane", "openWith", "mount", "runAsAdmin", "quickView", "openLocation", "openTarget", Separator,
             "cut", "copy", "paste", "rename", "delete", Separator,
             "compressZip", "extractHere", "copyPath", "shortcutDesktop", "pinStart", "pinTaskbar", "pinSidebar", "terminal", Separator,
             "properties", "windowsMenu");
@@ -162,11 +175,30 @@ namespace WinXplorer.Services
                 }
                 s.MenuVersion = 2;
             }
+            if (s.MenuVersion < 3)
+            {
+                // v3: mount disk images, run as administrator, shortcut target – they only show where they apply
+                foreach (var l in new[] { s.ItemMenu }.Concat(s.TypeMenus?.Values ?? Enumerable.Empty<List<MenuEntry>>()))
+                {
+                    void After(string anchor, string id)
+                    {
+                        if (l.Any(e => e.Id == id)) return;
+                        int i = l.FindIndex(e => e.Id == anchor);
+                        l.Insert(i < 0 ? 0 : i + 1, new MenuEntry { Id = id });
+                    }
+                    After("openWith", "mount");
+                    After("mount", "runAsAdmin");
+                    After(l.Any(e => e.Id == "openLocation") ? "openLocation" : "quickView", "openTarget");
+                }
+                s.MenuVersion = 3;
+            }
         }
 
         public static string LabelOf(MenuEntry e)
         {
             if (e.Id == Separator) return "———";
+            if (IsSub(e.Id)) return string.IsNullOrWhiteSpace(e.Label) ? Loc.T("Submenu") : e.Label;
+            if (e.Id == SubEnd) return Loc.T("SubmenuEnd");
             if (e.Id.StartsWith(ShellPrefix)) return e.Label ?? e.Id[ShellPrefix.Length..];
             if (e.Id.StartsWith(CustomCommands.Prefix)) return CustomCommands.Get(e.Id)?.Label ?? e.Id;
             return Get(e.Id) is { } c ? Loc.T(c.LabelKey) : e.Id;

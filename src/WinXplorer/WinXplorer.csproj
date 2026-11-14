@@ -10,7 +10,7 @@
     <AssemblyName>WinXplorer</AssemblyName>
     <RootNamespace>WinXplorer</RootNamespace>
     <Product>WinXplorer</Product>
-    <Version>0.1.8</Version>
+    <Version>0.1.9</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets\WinXplorer.ico')">Assets\WinXplorer.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
@@ -40,6 +40,7 @@
     <Resource Include="..\..\WinXplorer.svg" Link="Assets\WinXplorer.svg" />
     <Resource Include="..\..\WinXplorer_archive_dark.svg" Link="Assets\archive_dark.svg" />
     <Resource Include="..\..\WinXplorer_archive_light.svg" Link="Assets\archive_light.svg" />
+    <Resource Include="..\..\WinXplorer_archive_file.svg" Link="Assets\archive_file.svg" />
     <EmbeddedResource Include="Languages\*.json" LogicalName="WinXplorer.Languages.%(Filename).json" />
   </ItemGroup>
 

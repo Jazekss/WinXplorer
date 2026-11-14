@@ -53,10 +53,16 @@ namespace WinXplorer.Views
             SearchBox.TextChanged += (_, _) => UpdateSearchHint();
             // Name column takes whatever space the other columns leave (until the user resizes it)
             List.SizeChanged += (_, _) => FitNameColumn();
-            ((INotifyPropertyChanged)ColName).PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(GridViewColumn.Width) && !_fitting && Mouse.LeftButton == MouseButtonState.Pressed) _userSizedName = true;
-            };
+            // a column dragged wider / narrower: remembered for this folder (like its view and sort order)
+            _colSave = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+            _colSave.Tick += (_, _) => { _colSave.Stop(); SaveColumns(); };
+            foreach (var col in new[] { ColName, ColLocation, ColModified, ColType, ColSize })
+                ((INotifyPropertyChanged)col).PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName != nameof(GridViewColumn.Width) || _fitting || _applyingCols || Mouse.LeftButton != MouseButtonState.Pressed) return;
+                    if (col == ColName) _userSizedName = true;
+                    _colSave.Stop(); _colSave.Start();
+                };
             SizeChanged += (_, e) =>
             {
                 // narrow panes (split view): give the address bar more room
@@ -69,7 +75,33 @@ namespace WinXplorer.Views
             SetupHover();
         }
 
-        private bool _fitting, _userSizedName;
+        private bool _fitting, _userSizedName, _applyingCols;
+        private readonly System.Windows.Threading.DispatcherTimer _colSave;
+        private static readonly Dictionary<string, double> DefaultWidths = new() { ["location"] = 260, ["modified"] = 150, ["type"] = 140, ["size"] = 100 };
+
+        private IEnumerable<(string key, GridViewColumn col)> NamedColumns() => new[]
+            { ("name", ColName), ("location", ColLocation), ("modified", ColModified), ("type", ColType), ("size", ColSize) };
+
+        private void SaveColumns()
+        {
+            if (_vm == null || !_vm.IsDetails) return;
+            _vm.SaveColumnWidths(NamedColumns().ToDictionary(c => c.key, c => Math.Round(double.IsNaN(c.col.Width) ? c.col.ActualWidth : c.col.Width)));
+        }
+
+        /// <summary>The folder's own column widths, or the automatic layout (name fills the rest).</summary>
+        private void ApplyColumns()
+        {
+            var w = _vm?.ColumnWidths;
+            _applyingCols = true;
+            foreach (var (key, col) in NamedColumns())
+            {
+                if (w != null && w.TryGetValue(key, out var v) && v > 20) col.Width = v;
+                else if (DefaultWidths.TryGetValue(key, out var d)) col.Width = d;
+            }
+            _applyingCols = false;
+            _userSizedName = w != null && w.ContainsKey("name");
+            FitNameColumn();
+        }
 
         private void FitNameColumn()
         {
@@ -109,6 +141,7 @@ namespace WinXplorer.Views
             vm.RequestUi += OnRequestUi;
             BindItems();
             BuildCrumbs();
+            ApplyColumns();
             UpdateHeaders();
             UpdateFrame();
             UpdateSearchHint();
@@ -123,7 +156,7 @@ namespace WinXplorer.Views
                 case nameof(PaneViewModel.GroupByDate):
                     BindItems(); break;
                 case nameof(PaneViewModel.Path):
-                    BuildCrumbs(); break;
+                    BuildCrumbs(); ApplyColumns(); break;
                 case nameof(PaneViewModel.SortBy):
                 case nameof(PaneViewModel.SortDesc):
                     UpdateHeaders(); break;
@@ -496,6 +529,12 @@ namespace WinXplorer.Views
             if (item.Extension == ".lnk" && Shell.ResolveShortcut(item.FullPath) is string target && Directory.Exists(target))
             {
                 if (newTab) MainWindow.Instance.OpenInNewTab(target); else _vm.Navigate(target);
+                return;
+            }
+            // iso / img / vhd…: mount (Windows or DAEMON Tools, Alcohol…) or choose an app – not a folder
+            if (!item.InArchive && FileTypes.DiskImage.Contains(item.Extension))
+            {
+                OpenDiskImage(item);
                 return;
             }
             // zip / 7z / rar...: open it like a folder

@@ -18,6 +18,9 @@ namespace WinXplorer
         public System.Windows.Point? ScreenPos;
         public string Split, Right;
         public bool OpenSettings;
+        /// <summary>Window rectangle (WPF units) and maximized state, from a restored session.</summary>
+        public System.Windows.Rect? Bounds;
+        public bool Maximized;
 
         public static StartOptions Parse(string[] args)
         {
@@ -36,6 +39,14 @@ namespace WinXplorer
                     case "--split" when i + 1 < args.Length: o.Split = args[++i]; break;
                     case "--right" when i + 1 < args.Length: o.Right = Unwrap(args[++i]); break;
                     case "--settings": o.OpenSettings = true; break;
+                    case "--bounds" when i + 1 < args.Length:
+                        var b = args[++i].Split(',');
+                        var inv = System.Globalization.CultureInfo.InvariantCulture;
+                        if (b.Length >= 4 && double.TryParse(b[0], System.Globalization.NumberStyles.Float, inv, out var bl) && double.TryParse(b[1], System.Globalization.NumberStyles.Float, inv, out var bt)
+                            && double.TryParse(b[2], System.Globalization.NumberStyles.Float, inv, out var bw) && double.TryParse(b[3], System.Globalization.NumberStyles.Float, inv, out var bh) && bw > 100 && bh > 100)
+                            o.Bounds = new System.Windows.Rect(bl, bt, bw, bh);
+                        o.Maximized = b.Length >= 5 && b[4] == "max";
+                        break;
                     default:
                         if (!a.StartsWith("--") && o.Path == null) o.Path = Unwrap(a);
                         break;
@@ -128,8 +139,9 @@ namespace WinXplorer
                 try { Directory.CreateDirectory(AppState.DataDir); File.AppendAllText(Path.Combine(AppState.DataDir, "error.log"), $"{DateTime.Now:u} {ex.Exception}\n\n"); } catch { }
             };
 
+            FileIcons.Archive();   // the archive icon is drawn once here (WPF drawing wants the UI thread)
             var opt = StartOptions.Parse(e.Args);
-            if (opt.Path != null && opt.Split == null && opt.ScreenPos == null && !opt.OpenSettings && WinXplorer.MainWindow.ActivateExisting(opt.Path))
+            if (opt.Path != null && opt.Split == null && opt.ScreenPos == null && opt.Bounds == null && !opt.OpenSettings && WinXplorer.MainWindow.ActivateExisting(opt.Path))
             {
                 Shutdown();
                 return;
@@ -138,6 +150,7 @@ namespace WinXplorer
             MainWindow = win;
             win.Show();
             SearchIndex.Start();
+            ExplorerWatch.Start();
             new System.Threading.Thread(() =>
             {
                 Associations.Apply(AppState.Settings.ArchiveOpenWith);

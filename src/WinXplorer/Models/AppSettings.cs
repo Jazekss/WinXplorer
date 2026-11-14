@@ -39,6 +39,8 @@ namespace WinXplorer.Models
         public string SortBy { get; set; }
         public bool SortDesc { get; set; }
         public bool GroupByDate { get; set; }
+        /// <summary>Details view column widths the user dragged (name, modified, type, size, location); null = automatic.</summary>
+        public Dictionary<string, double> Columns { get; set; }
     }
 
     public sealed class AppSettings
@@ -68,6 +70,8 @@ namespace WinXplorer.Models
         public bool ShowExtensions { get; set; } = true;
         public bool ShowPreview { get; set; } = true;
         public bool RestoreTabs { get; set; } = true;
+        /// <summary>Ctrl+T / + opens This PC instead of the current folder.</summary>
+        public bool NewTabThisPC { get; set; }
         public bool CompactRows { get; set; }
         public bool SpaceOpensViewer { get; set; } = true;
         /// <summary>Resting the mouse on an item for a second opens a small preview beside it.</summary>

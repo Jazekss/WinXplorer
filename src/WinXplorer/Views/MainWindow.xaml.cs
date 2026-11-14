@@ -65,7 +65,14 @@ namespace WinXplorer
                 && s.WinLeft > SystemParameters.VirtualScreenLeft - 100 && s.WinTop >= SystemParameters.VirtualScreenTop - 10)
             { Left = s.WinLeft; Top = s.WinTop; }
             else WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            if (s.WinMaximized && opt.ScreenPos == null) WindowState = WindowState.Maximized;
+            if (opt.Bounds is Rect rb && rb.Left < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 100
+                && rb.Top < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 100 && rb.Right > SystemParameters.VirtualScreenLeft + 100)
+            {
+                // a folder window reopened after a restart: where and how big it was
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = rb.Left; Top = rb.Top; Width = rb.Width; Height = rb.Height;
+            }
+            if ((opt.Bounds != null ? opt.Maximized : s.WinMaximized) && opt.ScreenPos == null) WindowState = WindowState.Maximized;
             if (opt.ScreenPos is Point sp)
             {
                 // torn-off tab: put the new window's tab strip under the mouse (converted to DIPs once the DPI is known)
@@ -183,12 +190,21 @@ namespace WinXplorer
             try
             {
                 string line;
-                if (!_isSecondary) { VM.SaveSession(); AppState.Save(); line = "--session"; }
+                var b = RestoreBounds;
+                bool max = WindowState == WindowState.Maximized;
+                if (!_isSecondary)
+                {
+                    var st0 = AppState.Settings;
+                    st0.WinMaximized = max;
+                    if (!b.IsEmpty) { st0.WinLeft = b.Left; st0.WinTop = b.Top; st0.WinWidth = b.Width; st0.WinHeight = b.Height; }
+                    VM.SaveSession(); AppState.Save(); line = "--session";
+                }
                 else
                 {
                     var t = VM.SelectedTab is { IsSettings: false } st ? st : VM.Tabs.FirstOrDefault(x => !x.IsSettings);
                     if (t == null) return IntPtr.Zero;
                     line = StartOptions.Build(t.Primary.Path, null, t.IsSplit ? t.Split : null, t.Secondary?.Path);
+                    if (!b.IsEmpty) line += FormattableString.Invariant($" --bounds {b.Left:0},{b.Top:0},{b.Width:0},{b.Height:0}") + (max ? ",max" : "");
                 }
                 using var m = new System.Threading.Mutex(false, "WinXplorer.Restore");
                 m.WaitOne(2000);
@@ -451,7 +467,7 @@ namespace WinXplorer
             if (Hotkeys.InText && Hotkeys.IsTextKey(g)) return;
             switch (cmd)
             {
-                case "NewTab": OpenInNewTab(pane?.Path ?? FileSystem.ThisPC, true); break;
+                case "NewTab": OpenInNewTab(NewTabPath, true); break;
                 case "CloseTab": if (VM.SelectedTab != null) CloseTabAnimated(VM.SelectedTab); break;
                 case "NextTab": VM.CycleTab(1); break;
                 case "PrevTab": VM.CycleTab(-1); break;
@@ -477,7 +493,10 @@ namespace WinXplorer
         }
 
         // ================= tabs =================
-        private void NewTab_Click(object s, RoutedEventArgs e) => OpenInNewTab(VM.ActivePane?.Path ?? FileSystem.ThisPC, true);
+        private void NewTab_Click(object s, RoutedEventArgs e) => OpenInNewTab(NewTabPath, true);
+
+        /// <summary>Where a new tab starts: the current folder, or This PC (Settings › General).</summary>
+        private string NewTabPath => AppState.Settings.NewTabThisPC ? FileSystem.ThisPC : VM.ActivePane?.Path ?? FileSystem.ThisPC;
 
         /// <summary>Opens a folder in a new WinXplorer window (separate process, so windows never block each other).</summary>
         public static void OpenNewWindow(string path, Point? screenPos = null, TabViewModel layout = null)
@@ -664,11 +683,19 @@ namespace WinXplorer
                     // another launch asks: is this folder already open here? then show it instead of a second window
                     static string N(string p) => (p ?? "").TrimEnd('\\');
                     var want = N(parts[1]);
+                    // a file (Explorer was asked to show it selected): its folder, with the file selected
+                    string select = null;
+                    if (File.Exists(want)) { select = want; want = N(Path.GetDirectoryName(want)); }
                     var tab = VM.Tabs.FirstOrDefault(t => !t.IsSettings && (string.Equals(N(t.Primary?.Path), want, StringComparison.OrdinalIgnoreCase)
                         || t.IsSplit && string.Equals(N(t.Secondary?.Path), want, StringComparison.OrdinalIgnoreCase)));
                     if (tab == null) return IntPtr.Zero;
                     handled = true;
                     VM.SelectedTab = tab;
+                    if (select != null)
+                    {
+                        var pane = string.Equals(N(tab.Primary?.Path), want, StringComparison.OrdinalIgnoreCase) ? tab.Primary : tab.Secondary;
+                        pane?.SelectAndFocus(select);
+                    }
                     if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
                     Activate();
                     return new IntPtr(1);
@@ -862,7 +889,7 @@ namespace WinXplorer
             var cm = new ContextMenu();
             FillNewMenu(cm.Items, Pane);
             cm.Items.Add(new Separator());
-            cm.Items.Add(MI(Loc.T("NewTab"), "\uE8A7", () => OpenInNewTab(Pane?.Path ?? "", true), null, "Ctrl+T"));
+            cm.Items.Add(MI(Loc.T("NewTab"), "\uE8A7", () => OpenInNewTab(NewTabPath, true), null, "Ctrl+T"));
             cm.Items.Add(MI(Loc.T("NewWindow"), "\uE737", () => OpenNewWindow(Pane?.Path ?? FileSystem.ThisPC), null, "Ctrl+N"));
             Open(cm, NewBtn);
         }

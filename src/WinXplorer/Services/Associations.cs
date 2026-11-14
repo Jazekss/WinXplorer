@@ -37,14 +37,19 @@ namespace WinXplorer.Services
         }
 
         /// <summary>archive-dark.ico / archive-light.ico rendered from the SVGs (once; WPF drawing needs an STA thread).</summary>
-        private static string EnsureIcon(bool dark)
+        private static string EnsureIcon(bool dark) => EnsureIcon(dark ? "archive-dark.ico" : "archive-light.ico", dark ? "archive_dark.svg" : "archive_light.svg");
+
+        /// <summary>The colour icon archive files themselves get (when WinXplorer is the app chosen for them).</summary>
+        private static string EnsureFileIcon() => EnsureIcon("archive-file.ico", "archive_file.svg");
+
+        private static string EnsureIcon(string file, string svg)
         {
-            var path = Path.Combine(IconDir, dark ? "archive-dark.ico" : "archive-light.ico");
+            var path = Path.Combine(IconDir, file);
             if (File.Exists(path)) return path;
             Directory.CreateDirectory(IconDir);
             var t = new Thread(() =>
             {
-                try { App.WriteIco(App.LoadSvgResource(dark ? "archive_dark.svg" : "archive_light.svg"), path); } catch { }
+                try { App.WriteIco(App.LoadSvgResource(svg), path); } catch { }
             });
             t.SetApartmentState(ApartmentState.STA);
             t.Start(); t.Join();
@@ -59,7 +64,7 @@ namespace WinXplorer.Services
             bool dark = WindowsIsDark();
             var verbText = Loc.T("OpenInWinXplorer");
             // runs at every start and on theme changes: skip when nothing changed
-            var sig = string.Join("|", exe, dark ? "dark" : "light", verbText, "2");
+            var sig = string.Join("|", exe, dark ? "dark" : "light", verbText, "3");
             using var classes = Registry.CurrentUser.CreateSubKey(@"Software\Classes");
             using (var existing = classes.OpenSubKey(ProgId))
                 if (existing?.GetValue("WinXplorerSig") as string == sig) return;
@@ -69,7 +74,8 @@ namespace WinXplorer.Services
             using (var p = classes.CreateSubKey(ProgId))
             {
                 p.SetValue(null, Loc.T("ArchiveTypeName"));
-                using (var di = p.CreateSubKey("DefaultIcon")) di.SetValue(null, iconValue);
+                var fileIcon = EnsureFileIcon();
+                using (var di = p.CreateSubKey("DefaultIcon")) di.SetValue(null, fileIcon != null ? $"\"{fileIcon}\"" : iconValue);
                 using (var c = p.CreateSubKey(@"shell\open\command")) c.SetValue(null, cmd);
                 using (var f = p.CreateSubKey(@"shell\open")) f.SetValue("FriendlyAppName", "WinXplorer");
             }

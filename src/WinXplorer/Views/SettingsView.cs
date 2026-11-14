@@ -198,11 +198,17 @@ namespace WinXplorer.Views
 
             Header(Loc.T("SetStartup"));
             Card("", Loc.T("RestoreTabs"), Loc.T("RestoreTabsDesc"), Switch(S.RestoreTabs, v => S.RestoreTabs = v));
+            Card("", Loc.T("NewTabThisPC"), Loc.T("NewTabThisPCDesc"), Switch(S.NewTabThisPC, v => S.NewTabThisPC = v));
             Card("", Loc.T("SpaceViewer"), Loc.T("SpaceViewerDesc"), Switch(S.SpaceOpensViewer, v => S.SpaceOpensViewer = v));
             Card("\uE8FF", Loc.T("HoverPreview"), Loc.T("HoverPreviewDesc"), Switch(S.HoverPreview, v => S.HoverPreview = v));
             Card("\uE768", Loc.T("HoverAutoPlay"), Loc.T("HoverAutoPlayDesc"), Switch(S.HoverAutoPlay, v => S.HoverAutoPlay = v));
             Card("", Loc.T("DblClickViewer"), Loc.T("DblClickViewerDesc"), Switch(S.ImagesOpenInViewer, v => S.ImagesOpenInViewer = v));
-            Card("\uE7B8", Loc.T("OpenArchives"), Loc.T("OpenArchivesDesc"), Switch(S.OpenArchives, v => S.OpenArchives = v));
+            // archives: browse them in WinXplorer (with its archive icon) or hand them to the program Windows uses for them
+            var arch = new WrapPanel();
+            void SetArchives(bool own) { S.OpenArchives = own; Save(); ForEachPane(p => p.Refresh()); }
+            arch.Children.Add(Chip("archives", Loc.T("ArchivesInWinXplorer"), S.OpenArchives, () => SetArchives(true)));
+            arch.Children.Add(Chip("archives", Loc.T("ArchivesInDefaultApp"), !S.OpenArchives, () => SetArchives(false)));
+            WideCard("\uE7B8", Loc.T("OpenArchives"), Loc.T("OpenArchivesDesc"), arch);
             Card("\uEC50", Loc.T("DefaultFM"), Loc.T("DefaultFMDesc"), Switch(S.DefaultFileManager, v =>
             {
                 S.DefaultFileManager = v;
@@ -571,6 +577,7 @@ namespace WinXplorer.Views
             _editor.ItemsSource = null;
             _editor.Items.Clear();
             foreach (var e in _editing) _editor.Items.Add(EditorRow(e));
+            UpdateIndent();
             BuildAddPanel();
             FillRowEditor();
             UpdateTypeNote();
@@ -578,6 +585,7 @@ namespace WinXplorer.Views
 
         private void Commit()
         {
+            UpdateIndent();
             var list = _editor.Items.Cast<FrameworkElement>().Select(r => (MenuEntry)r.Tag).ToList();
             bool wasGeneral = IsTypeTarget && !HasOwnTypeMenu;
             SetTargetList(list);
@@ -597,7 +605,8 @@ namespace WinXplorer.Views
             g.Children.Add(grip);
 
             bool isSep = e.Id == MenuCatalog.Separator;
-            if (!isSep)
+            bool isSub = MenuCatalog.IsSub(e.Id), isEnd = e.Id == MenuCatalog.SubEnd;
+            if (!isSep && !isEnd)
             {
                 var cb = new CheckBox { IsChecked = e.Enabled, VerticalAlignment = VerticalAlignment.Center, ToolTip = Loc.T("ShowInMenu") };
                 cb.Click += (_, _) => { e.Enabled = cb.IsChecked == true; Commit(); };
@@ -620,6 +629,8 @@ namespace WinXplorer.Views
                 ((TextBlock)sp.Children[0]).SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
                 sp.Children.Add(Tb(MenuCatalog.LabelOf(e)));
                 if (e.Id.StartsWith(CustomCommands.Prefix)) { var w = Dim("  · " + Loc.T("Own")); w.FontSize = 11; sp.Children.Add(w); }
+                else if (isSub) { ((TextBlock)sp.Children[0]).Text = "\uE8B7"; ((TextBlock)sp.Children[1]).FontWeight = FontWeights.SemiBold; var w = Dim("  · " + Loc.T("Submenu")); w.FontSize = 11; sp.Children.Add(w); }
+                else if (isEnd) { ((TextBlock)sp.Children[0]).Text = ""; sp.Children[1].Opacity = 0.55; ((TextBlock)sp.Children[1]).FontStyle = FontStyles.Italic; }
                 else if (cmd == null) { var w = Dim("  · Windows"); w.FontSize = 11; sp.Children.Add(w); }
                 label = sp;
                 Grid.SetColumn(sp, 2);
@@ -629,9 +640,61 @@ namespace WinXplorer.Views
             var btns = new StackPanel { Orientation = Orientation.Horizontal };
             btns.Children.Add(SmallBtn("", Loc.T("MoveUp"), () => MoveRow(g, -1)));
             btns.Children.Add(SmallBtn("", Loc.T("MoveDown"), () => MoveRow(g, 1)));
-            btns.Children.Add(SmallBtn("", Loc.T("Remove"), () => { _editor.Items.Remove(g); Commit(); BuildAddPanel(); }));
+            if (isSub) btns.Children.Add(SmallBtn("\uE70F", Loc.T("Rename"), () =>
+            {
+                var name = InputDialog.Ask(Window.GetWindow(this), Loc.T("Submenu"), Loc.T("SubmenuName"), e.Label);
+                if (string.IsNullOrWhiteSpace(name)) return;
+                e.Label = name.Trim();
+                int at = _editor.Items.IndexOf(g);
+                _editor.Items[at] = EditorRow(e);
+                Commit();
+            }));
+            if (!isEnd) btns.Children.Add(SmallBtn("", Loc.T("Remove"), () =>
+            {
+                // a submenu goes with its end mark; what was inside stays, one level up
+                if (isSub && MatchingEnd(_editor.Items.IndexOf(g)) is FrameworkElement end) _editor.Items.Remove(end);
+                _editor.Items.Remove(g); Commit(); BuildAddPanel();
+            }));
             Grid.SetColumn(btns, 3); g.Children.Add(btns);
             return g;
+        }
+
+        /// <summary>The "end of submenu" row that closes the submenu starting at row <paramref name="start"/>.</summary>
+        private FrameworkElement MatchingEnd(int start)
+        {
+            int depth = 0;
+            for (int i = start; i < _editor.Items.Count; i++)
+            {
+                var id = ((MenuEntry)((FrameworkElement)_editor.Items[i]).Tag).Id;
+                if (MenuCatalog.IsSub(id)) depth++;
+                else if (id == MenuCatalog.SubEnd && --depth == 0) return (FrameworkElement)_editor.Items[i];
+            }
+            return null;
+        }
+
+        /// <summary>Rows inside a submenu are indented, so it's clear what the submenu holds.</summary>
+        private void UpdateIndent()
+        {
+            int depth = 0;
+            foreach (FrameworkElement row in _editor.Items)
+            {
+                var id = ((MenuEntry)row.Tag).Id;
+                if (id == MenuCatalog.SubEnd) depth = Math.Max(0, depth - 1);
+                row.Margin = new Thickness(depth * 22, 0, 0, 0);
+                if (MenuCatalog.IsSub(id)) depth++;
+            }
+        }
+
+        private void AddSubmenu()
+        {
+            var name = InputDialog.Ask(Window.GetWindow(this), Loc.T("Submenu"), Loc.T("SubmenuName"), Loc.T("Submenu"));
+            if (string.IsNullOrWhiteSpace(name)) return;
+            int at = _editor.Items.Count;
+            if (at > 0 && ((MenuEntry)((FrameworkElement)_editor.Items[^1]).Tag).Id == "windowsMenu") at--;
+            _editor.Items.Insert(at, EditorRow(new MenuEntry { Id = MenuCatalog.SubPrefix + Guid.NewGuid().ToString("N")[..8], Label = name.Trim() }));
+            _editor.Items.Insert(at + 1, EditorRow(new MenuEntry { Id = MenuCatalog.SubEnd }));
+            _editor.ScrollIntoView(_editor.Items[at + 1]);
+            Commit();
         }
 
         private Button SmallBtn(string glyph, string tip, Action a)
@@ -677,6 +740,8 @@ namespace WinXplorer.Views
                 _addPanel.Children.Add(AddRow(c.Glyph, Loc.T(c.LabelKey), null, () => AddEntry(new MenuEntry { Id = c.Id })));
             if (available.Count == 0) _addPanel.Children.Add(Dim(Loc.T("MenuAllAdded")));
             _addPanel.Children.Add(AddRow("", Loc.T("Separator"), null, () => AddEntry(new MenuEntry { Id = MenuCatalog.Separator })));
+            _addPanel.Children.Add(AddRow("\uE8B7", Loc.T("SubmenuAdd"), null, AddSubmenu));
+            _addPanel.Children.Add(Dim(Loc.T("SubmenuHint")).With(t => { t.Margin = new Thickness(32, 0, 0, 4); t.FontSize = 11; t.TextWrapping = TextWrapping.Wrap; }));
 
             // the user's own commands: add to this menu, edit, delete; "New command…" makes one
             _addPanel.Children.Add(new TextBlock { Text = Loc.T("MenuAddCustom"), FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 16, 0, 2) });
@@ -714,7 +779,10 @@ namespace WinXplorer.Views
                 // installed programs + Windows apps to choose from, "Find it myself…" for anything else
                 var app = AppPickerWindow.Pick(Window.GetWindow(this));
                 if (app == null) return;
-                var made = CustomCommands.Add(Loc.F("OpenWithName", app.Name), app.Command);
+                // then the name it gets in the menu (and options such as a private browser window)
+                var c = new CustomCommand { Label = Loc.F("OpenWithName", app.Name), Command = app.Command };
+                if (!EditCustomCommand(c)) return;
+                var made = CustomCommands.Add(c.Label, c.Command);
                 AddEntry(new MenuEntry { Id = made.Id });
                 FillRowEditor();   // the quick row can take it too
             }, "\uE71D");

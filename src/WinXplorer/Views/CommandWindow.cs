@@ -19,6 +19,7 @@ namespace WinXplorer
         private readonly TextBox _args = new() { Height = 30 };
         private readonly TextBox _url = new() { Height = 30, Margin = new Thickness(0, 6, 0, 0) };
         private readonly RadioButton _mFile = new(), _mAll = new(), _mLink = new(), _mNone = new();
+        private readonly System.Windows.Controls.Image _icon = new() { Width = 24, Height = 24, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
         private readonly TextBlock _preview = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 14, 0, 0), FontFamily = new System.Windows.Media.FontFamily("Consolas"), FontSize = 12 };
         private readonly CustomCommand _c;
 
@@ -48,6 +49,30 @@ namespace WinXplorer
 
             body.Children.Add(Label(Loc.T("CmdProgram"), 12));
             var exeRow = new DockPanel();
+            // any program file: pick it, the name and icon follow from it
+            var browse = new Button { Content = Loc.T("CmdBrowse"), Style = (Style)FindResource("SubtleBtn"), Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(6, 0, 0, 0) };
+            browse.Click += (_, _) =>
+            {
+                var dlg = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = Loc.T("CmdProgram"),
+                    Filter = Loc.T("Programs") + "|*.exe;*.bat;*.cmd;*.ps1;*.lnk;*.com|*.*|*.*",
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                };
+                if (dlg.ShowDialog(this) != true) return;
+                var file = dlg.FileName;
+                if (file.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) && Interop.Shell.ResolveShortcut(file) is string t && File.Exists(t)) file = t;
+                _exe.Text = file;
+                if (string.IsNullOrWhiteSpace(_name.Text))
+                {
+                    string title = null;
+                    try { title = System.Diagnostics.FileVersionInfo.GetVersionInfo(file).FileDescription; } catch { }
+                    _name.Text = Loc.F("OpenWithName", string.IsNullOrWhiteSpace(title) ? Path.GetFileNameWithoutExtension(file) : title.Trim());
+                }
+                _name.Focus(); _name.SelectAll();
+            };
+            DockPanel.SetDock(browse, Dock.Right);
+            exeRow.Children.Add(browse);
             var choose = new Button { Content = Loc.T("CmdChoose"), Style = (Style)FindResource("SubtleBtn"), Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(8, 0, 0, 0) };
             choose.Click += (_, _) =>
             {
@@ -58,8 +83,13 @@ namespace WinXplorer
             };
             DockPanel.SetDock(choose, Dock.Right);
             exeRow.Children.Add(choose);
+            DockPanel.SetDock(_icon, Dock.Left);
+            exeRow.Children.Add(_icon);
             exeRow.Children.Add(_exe);
             body.Children.Add(exeRow);
+            var progHint = new TextBlock { Text = Loc.T("CmdProgramHint"), TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(0, 4, 0, 0) };
+            progHint.SetResourceReference(TextBlock.ForegroundProperty, "FgDimBrush");
+            body.Children.Add(progHint);
 
             body.Children.Add(Label(Loc.T("CmdOpens"), 12));
             var modes = new WrapPanel();
@@ -155,7 +185,17 @@ namespace WinXplorer
             return parts;
         }
 
-        private void Update() => _preview.Text = _exe.Text.Trim().Length == 0 ? "" : Build();
+        private string _iconFor;
+
+        private void Update()
+        {
+            _preview.Text = _exe.Text.Trim().Length == 0 ? "" : Build();
+            // the icon the menu will show
+            var exe = _exe.Text.Trim();
+            if (exe == _iconFor) return;
+            _iconFor = exe;
+            try { _icon.Source = exe.Length == 0 ? null : CustomCommands.IconOf(new CustomCommand { Command = Build() }); } catch { _icon.Source = null; }
+        }
 
         private void Save()
         {

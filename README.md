@@ -14,14 +14,15 @@ The installer isn't code-signed yet, so Windows SmartScreen may say "Windows pro
 click *More info › Run anyway*.
 
 **Use WinXplorer instead of File Explorer** (optional): Settings › General › *WinXplorer opens folders*.
-Double-click on folders and drives, folder links and Win+E then open WinXplorer. The desktop, taskbar,
+Double-click on folders and drives, folder links and Win+E then open WinXplorer; while it runs, folders that other
+programs open straight in Explorer (torrent clients, a browser's *Show in folder*) move over too. The desktop, taskbar,
 Control Panel and Recycle Bin stay with Windows. Switch it off – or uninstall – and Windows Explorer is the default again.
 
 ## Features (v0.1)
 
 - **Tabs** (Ctrl+T / Ctrl+W / Ctrl+Tab, middle-click to close) – restored on start; drag to reorder, drag out of the window to open it in a new window; tabs shrink when many are open and the strip scrolls with the mouse wheel
 - **Settings tab** (Ctrl+, or ⋯ › Settings): language, theme, 6 accent colors (or the Windows accent), startup and view options
-- **Per-folder views**: every folder remembers its layout, icon size, sort order and grouping (View › *Use this view for all folders* makes it the default); **group by date** (Today, Yesterday, Earlier this week…) in the Sort menu
+- **Per-folder views**: every folder remembers its layout, icon size, column widths, sort order and grouping (View › *Use this view for all folders* makes it the default); **group by date** (Today, Yesterday, Earlier this week…) in the Sort menu
 - **Space on a folder** shows what's inside without opening it; optional **preview on hover** (rest the mouse on a file or folder for a second; video/audio can play at once)
 - **Frequent folders** block in the sidebar (optional), **folder sizes** in the size column (optional), empty disc drives and card readers are hidden
 - **Your own context-menu commands** (e.g. `code "%1"`), also as icons in the quick row
@@ -31,6 +32,9 @@ Control Panel and Recycle Bin stay with Windows. Switch it off – or uninstall 
 - **Customizable keyboard shortcuts**: Settings › Shortcuts & help – click a key, press a new combination; clashes are shown, reset per shortcut or all
 - **Address bar commands**: type `cmd`, `ps`, `terminal` (or `code .`, `git …`, any program on PATH) to run it in the current folder
 - **Customizable context menu**: WinXplorer's own short menu, editable in Settings (reorder, hide, add any item the Windows menu offers – 7-Zip, WinRAR, Send to…), or the full classic Windows menu; Shift+right-click always opens the full Windows menu. Compress to / extract ZIP built in
+- **Submenus** of your own in the context menu (e.g. *Antivirus*, *Tools*), own menus per file kind, a second menu on Ctrl+right-click; commands such as *Run as administrator*, *Open shortcut target location*, *Copy to… / Move to…*, *Copy name*, *Open in Explorer*
+- **Own commands** ("Open with *app*"): pick an installed app or browse for any .exe and name it – the menu shows the program's icon; browser flags (private window, separate profile) with one click
+- **Disc images** (iso, img, vhd, mdf…): double-click or right-click › *Mount* (Windows, or DAEMON Tools / Alcohol / WinCDEmu when installed) – the new drive opens in a tab
 - **Languages**: English, Latviešu, Deutsch, Eesti, Lietuvių, Norsk bokmål, Polski, Русский, Svenska (follows Windows by default). Add your own: Settings › Add a translation, or drop `xx.json` into `%APPDATA%\WinXplorer\Languages` (template: `src/WinXplorer/Languages/en.json`)
 - Offline network drives no longer hang a tab: after 15 s the pane says the location isn't responding
 - **Split view**: left/right or top/bottom, each pane with its own history, address bar and search (F6 switches pane)
@@ -42,7 +46,7 @@ Control Panel and Recycle Bin stay with Windows. Switch it off – or uninstall 
 - **Rename many files at once** (select several, F2): all names as editable text next to the current ones; column selection with Alt+drag or middle-button drag edits every line at once, find/replace (with regex), clashing names are pink and block the rename, Ctrl+Z undoes it
 - **Sidebar apps**: pin programs, shortcuts or files (drag them in, shown without the shortcut arrow); drop files on a pinned app to open them with it
 - **Low memory**: nothing of the search index is loaded while you browse – the first search on a drive maps its index file, a minute after the last search it's released again; drives are crawled in a short-lived background process
-- **Archives** (zip, 7z, rar, tar, gz, jar, apk, epub…): double-click opens them like folders (read-only), drag files out, right-click › Extract; Compress to ZIP; the preview lists the contents as a numbered table with a folder tree; optional "Open in WinXplorer" entry (with a light/dark archive icon) in Windows' own menu (current user only)
+- **Archives** (zip, 7z, rar, tar, gz, jar, apk, epub…): double-click opens them like folders (read-only, with WinXplorer's archive icon) – or switch to *open in their default program* in Settings, drag files out, right-click › Extract; Compress to ZIP; the preview lists the contents as a numbered table with a folder tree; optional "Open in WinXplorer" entry (with a light/dark archive icon) in Windows' own menu (current user only)
 - **Select with a rectangle**: drag in empty space, Ctrl adds to the selection
 - **Image viewer** (Space or double-click opens, Space again closes): a window over the file list, wheel zoom, drag to pan, ←/→ or the wide click zones at the left/right edge to browse, filmstrip, rotate, crop (X: drag a rectangle, Enter – replaces the file, original to the Recycle Bin, or saves a copy), delete, F11 maximize
 - **Breadcrumb address bar** with subfolder dropdowns, Tab completion, `%ENV%` variables

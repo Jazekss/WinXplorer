@@ -21,7 +21,10 @@ namespace WinXplorer.Services
         public static readonly HashSet<string> Badged = Set(".psd .psb .ai .ait .eps .indd .idml .pdf .svg .svgz");
 
         /// <summary>Archives WinXplorer opens like folders.</summary>
-        public static readonly HashSet<string> Archive = Set(".zip .7z .rar .tar .gz .tgz .bz2 .tbz2 .xz .txz .zst .lz .cab .iso .jar .apk .nupkg .vsix .whl .epub .cbz .cbr");
+        public static readonly HashSet<string> Archive = Set(".zip .7z .rar .tar .gz .tgz .bz2 .tbz2 .xz .txz .zst .lz .cab .jar .apk .nupkg .vsix .whl .epub .cbz .cbr");
+
+        /// <summary>Disc / disk images: mounted as a drive (Windows or DAEMON Tools, Alcohol…), not browsed like archives.</summary>
+        public static readonly HashSet<string> DiskImage = Set(".iso .img .vhd .vhdx .mdf .mds .nrg .cue .ccd .isz .b5t .b6t .cdi .bwt .dmg");
 
         /// <summary>Programs: show their details, never their bytes.</summary>
         public static readonly HashSet<string> Executable = Set(".exe .dll .sys .ocx .cpl .scr .com .efi .drv .mui .ax .winmd");
@@ -62,7 +65,7 @@ namespace WinXplorer.Services
         public static bool MayBeText(string path)
         {
             var ext = Path.GetExtension(path);
-            return !NotText.Contains(ext) && !Archive.Contains(ext) && !Executable.Contains(ext);
+            return !NotText.Contains(ext) && !Archive.Contains(ext) && !Executable.Contains(ext) && !DiskImage.Contains(ext);
         }
 
         /// <summary>

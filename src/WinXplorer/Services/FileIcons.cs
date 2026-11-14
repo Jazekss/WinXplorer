@@ -86,10 +86,19 @@ namespace WinXplorer.Services
         }
 
         /// <summary>16×16 tile: coloured rounded square with the extension.</summary>
-        public static ImageSource Small(string ext) => _small.GetOrAdd(ext, e => Custom(e, true) ?? BuildSmall(e));
+        public static ImageSource Small(string ext) => _small.GetOrAdd(ext, e => Custom(e, true) ?? (FileTypes.Archive.Contains(e) ? Archive() : null) ?? BuildSmall(e));
 
         /// <summary>Page with a folded corner and a coloured label (scales to any icon size).</summary>
-        public static ImageSource Large(string ext) => _large.GetOrAdd(ext, e => Custom(e, false) ?? BuildLarge(e));
+        public static ImageSource Large(string ext) => _large.GetOrAdd(ext, e => Custom(e, false) ?? (FileTypes.Archive.Contains(e) ? Archive() : null) ?? BuildLarge(e));
+
+        private static ImageSource _archive;
+        private static readonly object _archiveLock = new();
+
+        /// <summary>WinXplorer's archive icon (a folder with a zipper) for zip, 7z, rar… files – they open like folders here.</summary>
+        public static ImageSource Archive()
+        {
+            lock (_archiveLock) return _archive ??= App.LoadSvgResource("archive_file.svg");
+        }
 
         private static ImageSource BuildSmall(string ext)
         {

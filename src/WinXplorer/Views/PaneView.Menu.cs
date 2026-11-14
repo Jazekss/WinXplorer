@@ -120,7 +120,8 @@ namespace WinXplorer.Views
         private void ShowCustomMenu(List<FileItem> group, string parent, int x, int y, bool alt = false)
         {
             var main = MainWindow.Instance;
-            var entries = (group != null ? MenuCatalog.ItemMenuFor(AppState.Settings, group, alt) : AppState.Settings.BackgroundMenu).Where(e => e.Enabled).ToList();
+            var layout = (group != null ? MenuCatalog.ItemMenuFor(AppState.Settings, group, alt) : AppState.Settings.BackgroundMenu).ToList();
+            var entries = layout.Where(e => e.Enabled).ToList();
             var paths = group?.Select(g => g.FullPath).ToArray();
             var one = group?.Count == 1 ? group[0] : null;
             var target = group == null ? _vm.Path : one?.IsDirectory == true ? one.FullPath : null; // folder the command acts in
@@ -139,9 +140,10 @@ namespace WinXplorer.Views
             // while the quick row is being filled, the commands' menu items are collected instead of added
             string collecting = null;
             var rowItems = new Dictionary<string, MenuItem>();
+            ItemCollection into = cm.Items;   // the menu, or the submenu being filled
             void Add(object o)
             {
-                if (collecting == null) cm.Items.Add(o);
+                if (collecting == null) into.Add(o);
                 else if (o is MenuItem mi) rowItems[collecting] = mi;
             }
 
@@ -197,6 +199,36 @@ namespace WinXplorer.Views
                         Add(M(() => main.ShowViewer(_vm, one), "Space")); break;
                     case "openLocation" when one != null && _vm.IsRecursiveSearch:
                         Add(M(() => _vm.Navigate(one.FullPath))); break;
+                    case "openTarget" when one != null && !_vm.InArchive && one.Extension == ".lnk":
+                        Add(M(() =>
+                        {
+                            // the shortcut's target: its folder opens with the target selected (a folder target opens itself)
+                            var t = Shell.ResolveShortcut(one.FullPath);
+                            if (string.IsNullOrEmpty(t) || !File.Exists(t) && !Directory.Exists(t)) { Notify.Show(Loc.T("TargetMissing")); return; }
+                            _vm.Navigate(t);
+                        })); break;
+                    case "openNewWindow" when hasFiles && group.All(g => g.IsDirectory):
+                        Add(M(() => { foreach (var g in group) MainWindow.OpenNewWindow(g.FullPath); })); break;
+                    case "openInExplorer" when !_vm.InArchive && !(_vm.IsThisPC && !hasFiles):
+                        Add(M(() =>
+                        {
+                            if (one?.IsDirectory == true) FileOps.OpenInExplorer(one.FullPath);
+                            else if (hasFiles) FileOps.ShowInExplorer(paths[0]);
+                            else FileOps.OpenInExplorer(_vm.Path);
+                        })); break;
+                    case "runAsAdmin" when one != null && !_vm.InArchive && one.Extension is ".exe" or ".msi" or ".bat" or ".cmd" or ".com" or ".lnk":
+                        Add(M(() => FileOps.RunAsAdmin(one.FullPath))); break;
+                    case "mount" when one != null && !one.IsDirectory && !_vm.InArchive && FileTypes.DiskImage.Contains(one.Extension):
+                        if (MountMenuItem(one.FullPath, cm, Loc.T(cmd.LabelKey), cmd.Glyph) is { } mount) Add(mount);
+                        break;
+                    case "copyName" when hasFiles:
+                        Add(M(() => FileOps.SetClipboardText(string.Join(Environment.NewLine, group.Select(g => g.Name))))); break;
+                    case "copyTo" when hasFiles && !group.Any(g => g.IsDrive):
+                        Add(M(() => CopyMoveTo(paths, false))); break;
+                    case "moveTo" when hasFiles && !_vm.InArchive && !group.Any(g => g.IsDrive):
+                        Add(M(() => CopyMoveTo(paths, true))); break;
+                    case "selectAll" when !hasFiles:
+                        Add(M(() => { Current?.SelectAll(); Current?.Focus(); }, "Ctrl+A")); break;
                     case "cut" when hasFiles:
                         Add(M(() => FileOps.SetClipboard(paths, true), "Ctrl+X")); break;
                     case "copy" when hasFiles:
@@ -269,8 +301,33 @@ namespace WinXplorer.Views
             var row = MenuCatalog.Row(AppState.Settings, group != null);
             foreach (var id in row) { collecting = id; Emit(new MenuEntry { Id = id }); }
             collecting = null;
-            foreach (var e in entries)
-                if (!row.Contains(e.Id)) Emit(e);
+            // the layout, with submenus: "sub:…" opens one, "subend" closes it (a hidden submenu hides what's inside)
+            var stack = new Stack<ItemCollection>();
+            var subs = new HashSet<MenuItem>();
+            int skip = 0;
+            foreach (var e in layout)
+            {
+                if (MenuCatalog.IsSub(e.Id))
+                {
+                    if (skip > 0 || !e.Enabled) { skip++; continue; }
+                    var sm = MainWindow.MI(MenuCatalog.LabelOf(e), "", null);
+                    subs.Add(sm);
+                    into.Add(sm);
+                    stack.Push(into);
+                    into = sm.Items;
+                    continue;
+                }
+                if (e.Id == MenuCatalog.SubEnd)
+                {
+                    if (skip > 0) skip--;
+                    else if (stack.Count > 0) into = stack.Pop();
+                    continue;
+                }
+                if (skip > 0 || !e.Enabled || row.Contains(e.Id)) continue;
+                Emit(e);
+            }
+            into = cm.Items;
+            CleanUp(cm.Items, subs);
             if (row.Count > 0)
             {
                 cm.Items.Insert(0, QuickRow(cm, row, rowItems));
@@ -278,8 +335,7 @@ namespace WinXplorer.Views
             }
 
             // collapse separators that ended up at the edges or next to each other
-            for (int i = cm.Items.Count - 1; i >= 0; i--)
-                if (cm.Items[i] is Separator && (i == 0 || i == cm.Items.Count - 1 || cm.Items[i - 1] is Separator)) cm.Items.RemoveAt(i);
+            CollapseSeparators(cm.Items);
             if (cm.Items.Count == 0) { shell?.Dispose(); ShowWindowsMenu(group, parent, x, y, false); return; }
 
             cm.Closed += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => shell?.Dispose());
@@ -288,6 +344,32 @@ namespace WinXplorer.Views
             cm.HorizontalOffset = x / scale;
             cm.VerticalOffset = y / scale;
             cm.IsOpen = true;
+        }
+
+        private static void CollapseSeparators(ItemCollection items)
+        {
+            for (int i = items.Count - 1; i >= 0; i--)
+                if (items[i] is Separator && (i == 0 || i == items.Count - 1 || items[i - 1] is Separator)) items.RemoveAt(i);
+        }
+
+        /// <summary>Submenus left with nothing that applies here are dropped; separators inside them are tidied.</summary>
+        private static void CleanUp(ItemCollection items, HashSet<MenuItem> subs)
+        {
+            for (int i = items.Count - 1; i >= 0; i--)
+            {
+                if (items[i] is not MenuItem mi || !subs.Contains(mi)) continue;
+                CleanUp(mi.Items, subs);
+                CollapseSeparators(mi.Items);
+                if (mi.Items.Count == 0) items.RemoveAt(i);
+            }
+        }
+
+        /// <summary>Copy to / Move to: pick the destination folder.</summary>
+        private void CopyMoveTo(string[] paths, bool move)
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T(move ? "MoveTo" : "CopyTo"), InitialDirectory = _vm.InArchive || _vm.IsThisPC ? null : _vm.Path };
+            if (dlg.ShowDialog(Window.GetWindow(this)) != true) return;
+            FileOps.CopyOrMove(paths, dlg.FolderName, move);
         }
 
         private static ControlTemplate _rowTemplate;

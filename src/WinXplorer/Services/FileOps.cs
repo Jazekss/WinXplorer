@@ -427,6 +427,23 @@ namespace WinXplorer.Services
             catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); }
         }
 
+        /// <summary>Starts a program (or installer / script) with administrator rights – Windows asks for consent.</summary>
+        public static void RunAsAdmin(string path)
+        {
+            path = Real(path);
+            if (path == null) return;
+            try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true, Verb = "runas", WorkingDirectory = Path.GetDirectoryName(path) ?? "" }); }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223) { }   // the user said no
+            catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); }
+        }
+
+        /// <summary>Windows Explorer with this file selected in its folder.</summary>
+        public static void ShowInExplorer(string path)
+        {
+            ExplorerWatch.AllowNext();
+            try { Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true }); } catch { }
+        }
+
         public static void OpenWith(string path)
         {
             path = Real(path);
@@ -451,6 +468,7 @@ namespace WinXplorer.Services
 
         public static void OpenInExplorer(string path)
         {
+            ExplorerWatch.AllowNext();   // asked for Explorer on purpose: WinXplorer doesn't take this window over
             try
             {
                 // the explicit "open" verb is Explorer's own (Folder\shell\open) – the default action may be WinXplorer

@@ -75,6 +75,8 @@ namespace WinXplorer.Services
             if (string.IsNullOrEmpty(ext) || OwnIconExts.Contains(ext)) return false;
             if (FileTypes.Image.Contains(ext) || FileTypes.Video.Contains(ext) || FileTypes.Svg.Contains(ext)) return false;
             if (AppState.Settings.OwnCodeIcons && FileIcons.IsCodeType(ext)) return true;
+            // archives WinXplorer opens like folders get its archive folder icon
+            if (AppState.Settings.OpenArchives && FileTypes.Archive.Contains(ext)) return true;
             return IsUnknownType(ext);
         }
 

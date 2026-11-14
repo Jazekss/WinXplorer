@@ -74,7 +74,13 @@ namespace WinXplorer.Services
                     try
                     {
                         var disk = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath));
-                        if (disk != null) { Settings.Tabs = disk.Tabs ?? new(); Settings.SelectedTab = disk.SelectedTab; }
+                        if (disk != null)
+                        {
+                            // the main window's tabs and its place on screen stay as the main window left them
+                            Settings.Tabs = disk.Tabs ?? new(); Settings.SelectedTab = disk.SelectedTab;
+                            Settings.WinLeft = disk.WinLeft; Settings.WinTop = disk.WinTop; Settings.WinWidth = disk.WinWidth; Settings.WinHeight = disk.WinHeight;
+                            Settings.WinMaximized = disk.WinMaximized;
+                        }
                     }
                     catch { }
                 }

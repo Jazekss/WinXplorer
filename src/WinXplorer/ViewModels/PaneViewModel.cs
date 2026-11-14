@@ -80,7 +80,24 @@ namespace WinXplorer.ViewModels
             if (string.IsNullOrEmpty(_path)) return;
             var d = FolderViews;
             if (!d.ContainsKey(_path) && d.Count >= 1000) d.Remove(d.Keys.First());
-            d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate };
+            d.TryGetValue(_path, out var old);
+            d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate, Columns = old?.Columns };
+        }
+
+        /// <summary>Column widths the user set for this folder's details view (null = automatic).</summary>
+        public Dictionary<string, double> ColumnWidths => _path != null && FolderViews.TryGetValue(_path, out var fv) ? fv.Columns : null;
+
+        /// <summary>Remembers the details view's column widths for this folder only.</summary>
+        public void SaveColumnWidths(Dictionary<string, double> widths)
+        {
+            if (string.IsNullOrEmpty(_path) || IsThisPC) return;
+            var d = FolderViews;
+            if (!d.TryGetValue(_path, out var fv))
+            {
+                if (d.Count >= 1000) d.Remove(d.Keys.First());
+                fv = d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate };
+            }
+            fv.Columns = widths;
         }
 
         /// <summary>View › Apply to all folders: this folder's view becomes the default and every remembered one is dropped.</summary>
@@ -289,6 +306,8 @@ namespace WinXplorer.ViewModels
                     if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) || path.StartsWith("::")) { FileOps.OpenInExplorer(path); return; }
                     // "cmd", "ps", "terminal", "code ." … typed in the address bar: run it in this folder (like Explorer)
                     if (FileOps.RunFromAddressBar(target, InArchive || IsThisPC ? null : Path)) return;
+                    // a restored tab / history entry whose folder was deleted meanwhile: open what is left of the path
+                    if ((_path == null || !addHistory) && FolderGone(path) is string up) { Navigate(up, addHistory, null); return; }
                     MessageBox.Show(Application.Current.MainWindow, Loc.T("PathNotFound") + "\n" + path, "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -440,6 +459,8 @@ namespace WinXplorer.ViewModels
 
             if (error != null)
             {
+                // the folder itself is gone (deleted / moved elsewhere): step back to the nearest folder that still exists, like Explorer
+                if (FolderGone(path) is string up) { ListingCache.Remove(path); _watcher?.Dispose(); _watcher = null; Navigate(up, false, null); return; }
                 ListingCache.Remove(path);
                 _all = new List<FileItem>();
                 _loadedPath = null;
@@ -546,12 +567,59 @@ namespace WinXplorer.ViewModels
             return Native.StrCmpLogicalW(a.Name, b.Name);
         }
 
+        /// <summary>When <paramref name="path"/> no longer exists: the closest parent that does (This PC at the end); otherwise null.</summary>
+        private string FolderGone(string path)
+        {
+            if (InArchive || path == FileSystem.ThisPC || string.IsNullOrEmpty(path)) return null;
+            if (FileSystem.DirectoryExists(path, 1500) != false) return null;
+            var p = FileSystem.GetParent(path);
+            while (p != null && p != FileSystem.ThisPC && FileSystem.DirectoryExists(p, 1500) != true) p = FileSystem.GetParent(p);
+            return p ?? FileSystem.ThisPC;
+        }
+
+        private FileSystemWatcher _parentWatcher;
+
+        /// <summary>
+        /// Watches the open folder's own name in its parent: deleted or moved away → go up (the folder's handle is let go,
+        /// so the delete isn't held up); renamed → follow it to the new name.
+        /// </summary>
+        private void WatchSelf(string path)
+        {
+            _parentWatcher?.Dispose(); _parentWatcher = null;
+            var parent = FileSystem.GetParent(path);
+            if (InArchive || parent == null || parent == FileSystem.ThisPC) return;
+            try
+            {
+                var w = new FileSystemWatcher(parent, System.IO.Path.GetFileName(path.TrimEnd('\\')))
+                {
+                    IncludeSubdirectories = false,
+                    NotifyFilter = NotifyFilters.DirectoryName,
+                };
+                w.Deleted += (_, _) => Application.Current?.Dispatcher.BeginInvoke(() =>
+                {
+                    if (_parentWatcher != w || !string.Equals(Path, path, StringComparison.OrdinalIgnoreCase)) return;
+                    _watcher?.Dispose(); _watcher = null;
+                    _refreshTimer.Stop(); _refreshTimer.Start();
+                });
+                w.Renamed += (_, e) => Application.Current?.Dispatcher.BeginInvoke(() =>
+                {
+                    if (_parentWatcher != w || !string.Equals(Path, path, StringComparison.OrdinalIgnoreCase)) return;
+                    _watcher?.Dispose(); _watcher = null;
+                    if (Directory.Exists(e.FullPath)) Navigate(e.FullPath, false); else { _refreshTimer.Stop(); _refreshTimer.Start(); }
+                });
+                w.EnableRaisingEvents = true;
+                _parentWatcher = w;
+            }
+            catch { }
+        }
+
         // ---------------- watcher ----------------
         private void Watch(string path)
         {
             if (_watcher != null && string.Equals(_watcher.Path, path, StringComparison.OrdinalIgnoreCase)) return;
             _watcher?.Dispose(); _watcher = null;
             if (path == FileSystem.ThisPC) return;
+            WatchSelf(path);
             try
             {
                 _watcher = new FileSystemWatcher(path)
@@ -625,6 +693,7 @@ namespace WinXplorer.ViewModels
         {
             _cts?.Cancel();
             _watcher?.Dispose();
+            _parentWatcher?.Dispose();
             _refreshTimer.Stop();
         }
     }
