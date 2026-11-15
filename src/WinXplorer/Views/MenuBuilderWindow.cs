@@ -43,6 +43,15 @@ namespace WinXplorer
         private readonly Grid _columns = new();
         private readonly TextBox _search = new() { Height = 30, Margin = new Thickness(0, 0, 0, 8) };
         private bool _dirty, _closingOk;
+        /// <summary>A menu copied with its block's Copy button (and which block it came from).</summary>
+        private (string from, FullMenu menu)? _clip;
+
+        private static FullMenu Clone(FullMenu m) => new()
+        {
+            Row = m.Row.ToList(),
+            // submenus get new ids, so the copy is independent
+            Entries = m.Entries.Select(e => new MenuEntry { Id = MenuCatalog.IsSub(e.Id) ? MenuCatalog.SubPrefix + Guid.NewGuid().ToString("N")[..8] : e.Id, Label = e.Label, Enabled = true }).ToList(),
+        };
 
         /// <summary>Opens the builder; true when the user applied it (the "Fully custom" style is on).</summary>
         public static bool Open(Window owner)
@@ -467,7 +476,22 @@ namespace WinXplorer
             // header: icon + name, what it's for, tools
             var head = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
             var tools = new StackPanel { Orientation = Orientation.Horizontal };
-            tools.Children.Add(SmallBtn("", Loc.T("BuilderFill"), () =>
+            // copy this menu; every other menu then offers to paste it (handy to start the Video menu from Audio…)
+            tools.Children.Add(SmallBtn("\uE8C8", Loc.T("BuilderCopy"), () =>
+            {
+                _clip = (key, Clone(m));
+                foreach (var k in MenuCatalog.FullKeys) FillBlock(k);
+            }, 26).With(b => b.IsEnabled = !m.IsEmpty));
+            if (_clip is { } clip && clip.from != key)
+                tools.Children.Add(SmallBtn("\uE77F", Loc.F("BuilderPaste", MenuCatalog.FullTitle(clip.from)), () =>
+                {
+                    var c = Clone(clip.menu);
+                    // only what fits here (folder background commands don't go into a file menu and back)
+                    m.Row = c.Row.Where(id => MenuCatalog.CanBeInRow(id, IsItems(key))).ToList();
+                    m.Entries = c.Entries.Where(e => Allowed(key, new Payload { Id = e.Id, Block = "paste" })).ToList();
+                    _dirty = true; FillBlock(key);
+                }, 26).With(b => b.SetResourceReference(ForegroundProperty, "AccentTextBrush")));
+            tools.Children.Add(SmallBtn("\uE81C", Loc.T("BuilderFill"), () =>
             {
                 var cur = MenuCatalog.CurrentFor(AppState.Settings, key);
                 m.Row = cur.Row; m.Entries = cur.Entries;

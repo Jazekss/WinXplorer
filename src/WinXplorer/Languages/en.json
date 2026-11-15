@@ -621,5 +621,7 @@
  "MenuFullAll": "Fully custom: all menus",
  "BuilderBuilt": "fully custom",
  "BuilderFixed": "Always at the end of every menu",
- "MenuBuiltNote": "The {0} menu is built in the menu builder – that one is used, this one is kept for when you clear it there."
+ "MenuBuiltNote": "The {0} menu is built in the menu builder – that one is used, this one is kept for when you clear it there.",
+ "BuilderCopy": "Copy this menu",
+ "BuilderPaste": "Paste the copied menu ({0}) here – replaces this one"
 }
