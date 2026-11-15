@@ -10,7 +10,7 @@
     <AssemblyName>WinXplorer</AssemblyName>
     <RootNamespace>WinXplorer</RootNamespace>
     <Product>WinXplorer</Product>
-    <Version>0.1.11</Version>
+    <Version>0.1.12</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets\WinXplorer.ico')">Assets\WinXplorer.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

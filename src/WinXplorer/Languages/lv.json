@@ -620,5 +620,6 @@
  "MenuFullSome": "Pilnībā pielāgotas ({0}): {1}",
  "MenuFullAll": "Pilnībā pielāgotas: visas izvēlnes",
  "BuilderBuilt": "pilnībā pielāgota",
- "BuilderFixed": "Vienmēr katras izvēlnes beigās"
+ "BuilderFixed": "Vienmēr katras izvēlnes beigās",
+ "MenuBuiltNote": "Izvēlne \"{0}\" ir salikta konstruktorā – tiek lietota tā; šī paliek gadījumam, ja tur to notīri."
 }

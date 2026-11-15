@@ -132,7 +132,17 @@ namespace WinXplorer.Views
                 layout.Add(new MenuEntry { Id = MenuCatalog.Separator });
                 layout.AddRange(MenuCatalog.FixedLast.Select(id => new MenuEntry { Id = id }));
             }
-            else layout = (group != null ? MenuCatalog.ItemMenuFor(s, group, alt) : s.BackgroundMenu).ToList();
+            else
+            {
+                layout = (group != null ? MenuCatalog.ItemMenuFor(s, group, alt) : s.BackgroundMenu).ToList();
+                // pictures, video, music: the apps Windows recommends for them, right below "Open with"
+                if (group != null && !alt && !_vm.InArchive && OpenWithApps.AppliesTo(MenuCatalog.TypeOf(group)))
+                {
+                    int at = layout.FindIndex(e => e.Id == "openWith" && e.Enabled);
+                    if (at < 0) at = layout.FindIndex(e => e.Id == "open" && e.Enabled);
+                    layout.Insert(at + 1, new MenuEntry { Id = AutoApps });
+                }
+            }
             var entries = layout.Where(e => e.Enabled).ToList();
             var paths = group?.Select(g => g.FullPath).ToArray();
             var one = group?.Count == 1 ? group[0] : null;
@@ -178,6 +188,20 @@ namespace WinXplorer.Views
                     if (CustomCommands.IconOf(cc) is { } ico) cmi.Icon = new Image { Source = ico, Width = 16, Height = 16 };
                     else cmi.Icon = new TextBlock { Text = "\uE756", Style = (Style)Application.Current.Resources["Glyph"], FontSize = 14 };
                     Add(cmi);
+                    return;
+                }
+                if (e.Id == AutoApps)
+                {
+                    // one item per recommended app; the default program is "Open" already
+                    var ext = group[0].Extension;
+                    var def = DefaultAppName(ext);
+                    foreach (var app in OpenWithApps.For(ext).Where(a => !string.Equals(a.Name, def, StringComparison.CurrentCultureIgnoreCase)).Take(3))
+                    {
+                        var a = app;
+                        var ami = MainWindow.MI(Loc.F("OpenWithName", a.Name), null, () => OpenWithApps.Open(a, paths));
+                        if (a.Icon != null) ami.Icon = new Image { Source = a.Icon, Width = 16, Height = 16 };
+                        Add(ami);
+                    }
                     return;
                 }
                 if (e.Id.StartsWith(MenuCatalog.NewPrefix))
@@ -359,6 +383,22 @@ namespace WinXplorer.Views
             cm.HorizontalOffset = x / scale;
             cm.VerticalOffset = y / scale;
             cm.IsOpen = true;
+        }
+
+        private const string AutoApps = "autoApps";
+
+        /// <summary>Friendly name of the program that opens this type by default (to leave it out of the app list).</summary>
+        private static string DefaultAppName(string ext)
+        {
+            try
+            {
+                uint n = 0;
+                Native.AssocQueryStringW(0, 4 /* ASSOCSTR_FRIENDLYAPPNAME */, ext, null, null, ref n);
+                if (n == 0) return null;
+                var sb = new System.Text.StringBuilder((int)n);
+                return Native.AssocQueryStringW(0, 4, ext, null, sb, ref n) == 0 ? sb.ToString() : null;
+            }
+            catch { return null; }
         }
 
         private static void CollapseSeparators(ItemCollection items)

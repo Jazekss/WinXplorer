@@ -620,5 +620,6 @@
  "MenuFullSome": "Fully custom ({0}): {1}",
  "MenuFullAll": "Fully custom: all menus",
  "BuilderBuilt": "fully custom",
- "BuilderFixed": "Always at the end of every menu"
+ "BuilderFixed": "Always at the end of every menu",
+ "MenuBuiltNote": "The {0} menu is built in the menu builder – that one is used, this one is kept for when you clear it there."
 }
