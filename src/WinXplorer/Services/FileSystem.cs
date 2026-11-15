@@ -189,6 +189,9 @@ namespace WinXplorer.Services
             var s = input.Trim().Trim('"');
             if (s.Length == 0) return current ?? ThisPC;
             var lower = s.ToLowerInvariant();
+            // a subfolder of the current folder with that name wins over the shortcuts below ("temp", "local"…)
+            bool child = !string.IsNullOrEmpty(current) && s.IndexOfAny(new[] { '\\', '/', ':', '%' }) < 0 && SafeDirExists(Path.Combine(current, s));
+            if (!child)
             switch (lower)
             {
                 case "this pc": case "šis dators": case "computer": case "dators": return ThisPC;
@@ -197,13 +200,39 @@ namespace WinXplorer.Services
                 case "downloads": case "lejupielādes": return Native.GetKnownFolder(Native.FOLDERID_Downloads);
                 case "pictures": case "attēli": return Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
                 case "home": case "~": return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                // system folders by their bare name (AppData = the AppData folder itself, not Roaming like %AppData%)
+                case "appdata": return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData");
+                case "roaming": return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                case "local": case "localappdata": return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                case "locallow": return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow");
+                case "programdata": return Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                case "program files": case "programfiles": return Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                case "program files (x86)": case "programfiles(x86)": case "programfilesx86": return Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                case "windows": return Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+                case "system32": return Environment.GetFolderPath(Environment.SpecialFolder.System);
+                case "temp": case "tmp": return Path.GetTempPath();
+                case "users": return Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+                case "public": return Environment.GetEnvironmentVariable("PUBLIC");
+                case "music": case "mūzika": return Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+                case "videos": case "video": case "videoklipi": return Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+                case "startup": return Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+                case "start menu": case "startmenu": return Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
+                case "sendto": return Environment.GetFolderPath(Environment.SpecialFolder.SendTo);
             }
+            // the user's own name opens their profile folder
+            if (!child && string.Equals(s, Environment.UserName, StringComparison.OrdinalIgnoreCase))
+                return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             s = Environment.ExpandEnvironmentVariables(s);
             if (s.StartsWith("~\\") || s.StartsWith("~/")) s = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), s[2..]);
             if (s.Length == 2 && s[1] == ':') s += "\\";
             if (!Path.IsPathRooted(s) && !string.IsNullOrEmpty(current)) s = Path.Combine(current, s);
             try { s = Path.GetFullPath(s); } catch { }
             return s;
+        }
+
+        private static bool SafeDirExists(string p)
+        {
+            try { return !p.StartsWith(@"\\") && Directory.Exists(p); } catch { return false; }
         }
 
         public static string GetParent(string path)

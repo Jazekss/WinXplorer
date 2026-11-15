@@ -53,14 +53,10 @@ namespace WinXplorer
             var browse = new Button { Content = Loc.T("CmdBrowse"), Style = (Style)FindResource("SubtleBtn"), Padding = new Thickness(12, 4, 12, 4), Margin = new Thickness(6, 0, 0, 0) };
             browse.Click += (_, _) =>
             {
-                var dlg = new Microsoft.Win32.OpenFileDialog
-                {
-                    Title = Loc.T("CmdProgram"),
-                    Filter = Loc.T("Programs") + "|*.exe;*.bat;*.cmd;*.ps1;*.lnk;*.com|*.*|*.*",
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                };
-                if (dlg.ShowDialog(this) != true) return;
-                var file = dlg.FileName;
+                var picked = PickerWindow.Files(this, Loc.T("CmdProgram"), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    new[] { new PickerWindow.Filter(Loc.T("Programs"), "*.exe;*.bat;*.cmd;*.ps1;*.lnk;*.com"), new PickerWindow.Filter(Loc.T("AllFiles"), "*.*") });
+                if (picked == null || picked.Length == 0) return;
+                var file = picked[0];
                 if (file.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) && Interop.Shell.ResolveShortcut(file) is string t && File.Exists(t)) file = t;
                 _exe.Text = file;
                 if (string.IsNullOrWhiteSpace(_name.Text))

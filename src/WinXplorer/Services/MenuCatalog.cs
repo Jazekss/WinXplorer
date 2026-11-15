@@ -145,6 +145,76 @@ namespace WinXplorer.Services
             return t != null && s.TypeMenus != null && s.TypeMenus.TryGetValue(t, out var l) && l is { Count: > 0 } ? l : s.ItemMenu;
         }
 
+        // ---------------- "Fully custom" style (menu builder) ----------------
+        /// <summary>The builder's menus, in the order it shows them.</summary>
+        public static readonly string[] FullKeys = { "item", "folder", "image", "video", "audio", "document", "archive", "program", "alt", "background" };
+
+        public static string FullTitle(string key) => key switch
+        {
+            "item" => Loc.T("MenuForItems"),
+            "alt" => Loc.T("MenuForAlt"),
+            "background" => Loc.T("MenuForBackground"),
+            _ => TypeLabel(key),
+        };
+
+        public static string FullGlyph(string key) => key switch
+        {
+            "item" => "", "folder" => "", "image" => "", "video" => "", "audio" => "",
+            "document" => "", "archive" => "", "program" => "", "alt" => "", _ => "",
+        };
+
+        /// <summary>Icon size in the row follows how many icons it has: up to 5 large, 6 medium, 7–8 small.</summary>
+        public static string RowSizeFor(int count) => count <= 5 ? "large" : count == 6 ? "medium" : "small";
+
+        /// <summary>
+        /// The builder's menu for these items (or the background when <paramref name="items"/> is null): Ctrl menu, the kind's
+        /// own, then the general files menu. Null = nothing built for it – the WinXplorer menu is used.
+        /// </summary>
+        public static FullMenu FullFor(AppSettings s, IEnumerable<FileItem> items, bool alt)
+        {
+            if (items == null) return GetFull(s, "background");
+            if (alt) return GetFull(s, "alt");   // not built: the usual Ctrl menu
+            return GetFull(s, TypeOf(items)) ?? GetFull(s, "item");
+        }
+
+        /// <summary>A menu made in the builder (null when that one wasn't built).</summary>
+        public static FullMenu GetFull(AppSettings s, string key) =>
+            key != null && s.FullMenus != null && s.FullMenus.TryGetValue(key, out var f) && f != null && !f.IsEmpty ? f : null;
+
+        /// <summary>The builder's menus that are in use.</summary>
+        public static List<string> BuiltKeys(AppSettings s) => FullKeys.Where(k => GetFull(s, k) != null).ToList();
+
+        /// <summary>Every menu is built: WinXplorer's and the Windows style are no longer used anywhere.</summary>
+        public static bool AllBuilt(AppSettings s) => BuiltKeys(s).Count == FullKeys.Length;
+
+        /// <summary>Always at the bottom of a built menu (they can't be placed or removed in the builder).</summary>
+        public static readonly string[] FixedLast = { "properties", "windowsMenu" };
+
+        /// <summary>The WinXplorer menu (Settings › Context menu) for a builder key – where "Start from the current menu" begins.</summary>
+        public static FullMenu CurrentFor(AppSettings s, string key)
+        {
+            var list = key switch
+            {
+                "item" => s.ItemMenu,
+                "alt" => s.AltMenu ?? DefaultAltMenu(),
+                "background" => s.BackgroundMenu,
+                _ => s.TypeMenus != null && s.TypeMenus.TryGetValue(key, out var l) && l is { Count: > 0 } ? l : s.ItemMenu,
+            } ?? new List<MenuEntry>();
+            // hidden entries are left out; a hidden submenu with everything in it
+            var entries = new List<MenuEntry>();
+            int skip = 0;
+            foreach (var e in list)
+            {
+                if (IsSub(e.Id) && (skip > 0 || !e.Enabled)) { skip++; continue; }
+                if (e.Id == SubEnd && skip > 0) { skip--; continue; }
+                if (skip > 0 || !e.Enabled && e.Id != SubEnd && e.Id != Separator) continue;
+                if (FixedLast.Contains(e.Id)) continue;   // the builder adds these itself, always last
+                entries.Add(new MenuEntry { Id = e.Id, Label = e.Label, Enabled = true });
+            }
+            while (entries.Count > 0 && entries[^1].Id == Separator) entries.RemoveAt(entries.Count - 1);
+            return new FullMenu { Row = Row(s, key != "background").Where(id => !FixedLast.Contains(id)).ToList(), Entries = entries };
+        }
+
         public static List<MenuEntry> DefaultBackgroundMenu() => Make(
             "view", "sortBy", "refresh", Separator,
             "paste", "undo", Separator,

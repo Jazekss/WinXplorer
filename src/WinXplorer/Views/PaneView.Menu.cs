@@ -43,7 +43,10 @@ namespace WinXplorer.Views
 
             bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
             bool alt = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);   // Ctrl + right-click: the second menu (Alt closes menus in Windows)
-            if (alt && group != null) ShowCustomMenu(group, parent, x, y, alt: true);   // second menu (Settings › Context menu › Ctrl)
+            // a menu built in the menu builder wins for its own kind; the others keep the chosen style
+            var full = shift ? null : MenuCatalog.FullFor(AppState.Settings, group, alt && group != null);
+            if (full != null) ShowCustomMenu(group, parent, x, y, alt, full);
+            else if (alt && group != null) ShowCustomMenu(group, parent, x, y, alt: true);   // second menu (Settings › Context menu › Ctrl)
             else if (AppState.Settings.ContextMenuMode == "windows" || shift) ShowWindowsMenu(group, parent, x, y, shift);
             else ShowCustomMenu(group, parent, x, y);
         }
@@ -117,10 +120,19 @@ namespace WinXplorer.Views
         }
 
         // ---------------- WinXplorer menu (layout from Settings › Context menu) ----------------
-        private void ShowCustomMenu(List<FileItem> group, string parent, int x, int y, bool alt = false)
+        private void ShowCustomMenu(List<FileItem> group, string parent, int x, int y, bool alt = false, FullMenu full = null)
         {
             var main = MainWindow.Instance;
-            var layout = (group != null ? MenuCatalog.ItemMenuFor(AppState.Settings, group, alt) : AppState.Settings.BackgroundMenu).ToList();
+            var s = AppState.Settings;
+            List<MenuEntry> layout;
+            if (full != null)
+            {
+                // the builder's menu: what the user placed, then Properties and the Windows menu – always last
+                layout = full.Entries.Where(e => !MenuCatalog.FixedLast.Contains(e.Id)).ToList();
+                layout.Add(new MenuEntry { Id = MenuCatalog.Separator });
+                layout.AddRange(MenuCatalog.FixedLast.Select(id => new MenuEntry { Id = id }));
+            }
+            else layout = (group != null ? MenuCatalog.ItemMenuFor(s, group, alt) : s.BackgroundMenu).ToList();
             var entries = layout.Where(e => e.Enabled).ToList();
             var paths = group?.Select(g => g.FullPath).ToArray();
             var one = group?.Count == 1 ? group[0] : null;
@@ -298,7 +310,10 @@ namespace WinXplorer.Views
                 }
                         }
 
-            var row = MenuCatalog.Row(AppState.Settings, group != null);
+            var row = full != null
+                ? (full.Row ?? new()).Where(id => MenuCatalog.CanBeInRow(id, group != null) && !MenuCatalog.FixedLast.Contains(id)).Distinct().Take(8).ToList()
+                : MenuCatalog.Row(s, group != null);
+            var rowSize = full != null ? MenuCatalog.RowSizeFor(row.Count) : s.QuickRowSize;
             foreach (var id in row) { collecting = id; Emit(new MenuEntry { Id = id }); }
             collecting = null;
             // the layout, with submenus: "sub:…" opens one, "subend" closes it (a hidden submenu hides what's inside)
@@ -330,7 +345,7 @@ namespace WinXplorer.Views
             CleanUp(cm.Items, subs);
             if (row.Count > 0)
             {
-                cm.Items.Insert(0, QuickRow(cm, row, rowItems));
+                cm.Items.Insert(0, QuickRow(cm, row, rowItems, rowSize));
                 cm.Items.Insert(1, new Separator());
             }
 
@@ -367,9 +382,9 @@ namespace WinXplorer.Views
         /// <summary>Copy to / Move to: pick the destination folder.</summary>
         private void CopyMoveTo(string[] paths, bool move)
         {
-            var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T(move ? "MoveTo" : "CopyTo"), InitialDirectory = _vm.InArchive || _vm.IsThisPC ? null : _vm.Path };
-            if (dlg.ShowDialog(Window.GetWindow(this)) != true) return;
-            FileOps.CopyOrMove(paths, dlg.FolderName, move);
+            var dest = PickerWindow.Folder(Window.GetWindow(this), Loc.T(move ? "MoveTo" : "CopyTo"), _vm.InArchive || _vm.IsThisPC ? null : _vm.Path);
+            if (dest == null) return;
+            FileOps.CopyOrMove(paths, dest, move);
         }
 
         private static ControlTemplate _rowTemplate;
@@ -378,9 +393,8 @@ namespace WinXplorer.Views
         /// The icon row on the first line of the menu. Each button runs the same command its menu item would;
         /// commands that don't apply here (paste with an empty clipboard…) stay visible but disabled, so the row keeps its layout.
         /// </summary>
-        private static MenuItem QuickRow(ContextMenu cm, List<string> row, Dictionary<string, MenuItem> items)
+        private static MenuItem QuickRow(ContextMenu cm, List<string> row, Dictionary<string, MenuItem> items, string size)
         {
-            var size = AppState.Settings.QuickRowSize;
             double bw = MenuCatalog.RowButton(size), gs = MenuCatalog.RowGlyph(size);
             var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 2, 4, 2) };
             foreach (var id in row)

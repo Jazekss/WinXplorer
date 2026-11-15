@@ -57,10 +57,63 @@ namespace WinXplorer.Services
                     Settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
             }
             catch { Settings = new AppSettings(); }
-            Settings.Sidebar ??= DefaultSidebar();
-            Settings.HiddenDrives ??= new();
-            Settings.Tabs ??= new();
-            MenuCatalog.Ensure(Settings);
+            Fix(Settings);
+            WatchOtherWindows();
+        }
+
+        private static void Fix(AppSettings s)
+        {
+            s.Sidebar ??= DefaultSidebar();
+            s.HiddenDrives ??= new();
+            s.Tabs ??= new();
+            if (s.ContextMenuMode == "full") s.ContextMenuMode = "custom";   // 0.1.10 had a separate style for built menus
+            MenuCatalog.Ensure(s);
+        }
+
+        // ---- every WinXplorer window is its own process: each one follows what the others save ----
+        private static FileSystemWatcher _watch;
+        private static System.Windows.Threading.DispatcherTimer _reloadTimer;
+        private static DateTime _ownWrite;
+
+        /// <summary>
+        /// Without this, a window that was open while you changed a setting in another one kept the old settings
+        /// in memory and wrote them back on its next save – the change seemed to "fall off" after a restart.
+        /// </summary>
+        private static void WatchOtherWindows()
+        {
+            var app = System.Windows.Application.Current;
+            if (_watch != null || app == null) return;
+            try
+            {
+                Directory.CreateDirectory(DataDir);
+                _reloadTimer = new System.Windows.Threading.DispatcherTimer(TimeSpan.FromMilliseconds(300), System.Windows.Threading.DispatcherPriority.Background,
+                    (_, _) => { _reloadTimer.Stop(); ReloadFromDisk(); }, app.Dispatcher);
+                _reloadTimer.Stop();
+                _watch = new FileSystemWatcher(DataDir, "settings.json") { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
+                FileSystemEventHandler h = (_, _) => app.Dispatcher.BeginInvoke(() => { _reloadTimer.Stop(); _reloadTimer.Start(); });
+                _watch.Changed += h; _watch.Created += h;
+                _watch.Renamed += (_, _) => app.Dispatcher.BeginInvoke(() => { _reloadTimer.Stop(); _reloadTimer.Start(); });
+                _watch.EnableRaisingEvents = true;
+            }
+            catch { }
+        }
+
+        private static void ReloadFromDisk()
+        {
+            try
+            {
+                if (!File.Exists(FilePath) || File.GetLastWriteTimeUtc(FilePath) == _ownWrite) return;   // our own save
+                var disk = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath));
+                if (disk == null) return;
+                // this window's own tabs and place on screen stay as they are
+                var s = Settings;
+                disk.Tabs = s.Tabs; disk.SelectedTab = s.SelectedTab;
+                disk.WinLeft = s.WinLeft; disk.WinTop = s.WinTop; disk.WinWidth = s.WinWidth; disk.WinHeight = s.WinHeight; disk.WinMaximized = s.WinMaximized;
+                Fix(disk);
+                Settings = disk;
+                _ownWrite = File.GetLastWriteTimeUtc(FilePath);
+            }
+            catch { }   // being written right now: the next change event reads it again
         }
 
         /// <param name="keepSavedSession">Keep the tabs stored on disk (used by extra windows, so they don't replace the main window's session).</param>
@@ -87,6 +140,7 @@ namespace WinXplorer.Services
                 var tmp = FilePath + ".tmp";
                 File.WriteAllText(tmp, JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true }));
                 File.Move(tmp, FilePath, true);
+                _ownWrite = File.GetLastWriteTimeUtc(FilePath);
             }
             catch { }
         }

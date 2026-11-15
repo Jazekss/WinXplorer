@@ -23,6 +23,15 @@ namespace WinXplorer.Models
         public bool Enabled { get; set; } = true;
     }
 
+    /// <summary>One menu of the "Fully custom" style (made in the menu builder): icon row + entries.</summary>
+    public sealed class FullMenu
+    {
+        public List<string> Row { get; set; } = new();
+        public List<MenuEntry> Entries { get; set; } = new();
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsEmpty => (Row == null || Row.Count == 0) && (Entries == null || Entries.Count == 0);
+    }
+
     /// <summary>A context-menu command the user made: name + command line (see Services.CustomCommands).</summary>
     public sealed class CustomCommand
     {
@@ -49,8 +58,10 @@ namespace WinXplorer.Models
         public string Theme { get; set; } = "system";    // system | light | dark
         public string Accent { get; set; } = "system";   // system | #RRGGBB
 
-        /// <summary>custom = WinXplorer menu (editable in Settings), windows = classic Windows menu.</summary>
+        /// <summary>custom = WinXplorer menu (editable in Settings), windows = classic Windows menu, full = fully custom (menu builder).</summary>
         public string ContextMenuMode { get; set; } = "custom";
+        /// <summary>The menu builder's menus: "item", a file kind ("image"…), "alt", "background". Empty / missing = the WinXplorer menu.</summary>
+        public Dictionary<string, FullMenu> FullMenus { get; set; }
         public List<MenuEntry> ItemMenu { get; set; }
         public List<MenuEntry> BackgroundMenu { get; set; }
         /// <summary>Own menus per file kind ("folder", "image", "video", "audio", "document", "archive", "program"); missing = ItemMenu.</summary>

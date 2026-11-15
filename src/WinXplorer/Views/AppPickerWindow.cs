@@ -124,16 +124,14 @@ namespace WinXplorer
 
         private void Browse()
         {
-            var dlg = new Microsoft.Win32.OpenFileDialog
-            {
-                Title = Loc.T("AddOpenWithApp"), Filter = Loc.T("Programs") + " (*.exe)|*.exe",
-                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-            };
-            if (dlg.ShowDialog(this) != true) return;
+            var picked = PickerWindow.Files(this, Loc.T("AddOpenWithApp"), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                new[] { new PickerWindow.Filter(Loc.T("Programs"), "*.exe") });
+            if (picked == null || picked.Length == 0) return;
+            var file = picked[0];
             string name = null;
-            try { name = System.Diagnostics.FileVersionInfo.GetVersionInfo(dlg.FileName).FileDescription; } catch { }
-            if (string.IsNullOrWhiteSpace(name)) name = System.IO.Path.GetFileNameWithoutExtension(dlg.FileName);
-            _result = new AppEntry { Name = name.Trim(), Command = $"\"{dlg.FileName}\" \"%1\"" };
+            try { name = System.Diagnostics.FileVersionInfo.GetVersionInfo(file).FileDescription; } catch { }
+            if (string.IsNullOrWhiteSpace(name)) name = System.IO.Path.GetFileNameWithoutExtension(file);
+            _result = new AppEntry { Name = name.Trim(), Command = $"\"{file}\" \"%1\"" };
             DialogResult = true;
         }
     }

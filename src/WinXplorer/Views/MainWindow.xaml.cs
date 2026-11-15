@@ -1082,22 +1082,17 @@ namespace WinXplorer
 
         private void AddFolderDialog(int insertAt)
         {
-            var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("AddFolder"), Multiselect = true };
-            if (Pane != null && !Pane.IsThisPC) dlg.InitialDirectory = Pane.Path;
-            if (dlg.ShowDialog(this) == true)
-                foreach (var f in dlg.FolderNames) VM.Sidebar.AddFolder(f, insertAt < 0 ? -1 : insertAt++);
+            var picked = PickerWindow.Folders(this, Loc.T("AddFolder"), Pane != null && !Pane.IsThisPC ? Pane.Path : null, multi: true);
+            if (picked != null)
+                foreach (var f in picked) VM.Sidebar.AddFolder(f, insertAt < 0 ? -1 : insertAt++);
         }
 
         private void AddAppDialog(int insertAt)
         {
-            var dlg = new Microsoft.Win32.OpenFileDialog
-            {
-                Title = Loc.T("AddApp"), Multiselect = true, DereferenceLinks = false,
-                Filter = Loc.T("AppsFilter") + "|*.exe;*.lnk;*.bat;*.cmd;*.ps1;*.url;*.appref-ms|" + Loc.T("AllFiles") + "|*.*",
-                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu) + "\\Programs",
-            };
-            if (dlg.ShowDialog(this) == true)
-                foreach (var f in dlg.FileNames) VM.Sidebar.AddApp(f, insertAt < 0 ? -1 : insertAt++);
+            var picked = PickerWindow.Files(this, Loc.T("AddApp"), Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu) + @"\Programs",
+                new[] { new PickerWindow.Filter(Loc.T("AppsFilter"), "*.exe;*.lnk;*.bat;*.cmd;*.ps1;*.url;*.appref-ms"), new PickerWindow.Filter(Loc.T("AllFiles"), "*.*") }, multi: true);
+            if (picked != null)
+                foreach (var f in picked) VM.Sidebar.AddApp(f, insertAt < 0 ? -1 : insertAt++);
         }
 
         private void ClearHints()

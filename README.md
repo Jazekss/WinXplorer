@@ -28,10 +28,12 @@ Control Panel and Recycle Bin stay with Windows. Switch it off – or uninstall 
 - **Your own context-menu commands** (e.g. `code "%1"`), also as icons in the quick row
 - **HEIC / HEIF (iPhone, Samsung photos) and AVIF open on any PC** – decoded with the built-in libheif, no Microsoft codec needed; for WebP / camera RAW without Microsoft's free codecs the preview links straight to the right Store page
 - Third-party components and their licenses: [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)
-- **Quick row in the context menu**: up to 8 icons on the first line (cut, copy, rename, delete, *new .php file*…), three sizes, chosen in Settings › Context menu
+- **Quick row in the context menu**: up to 8 icons on the first line (cut, copy, rename, delete, *new .php file*…) – 5 large, 6 medium or 8 small, sized by how many you place
 - **Customizable keyboard shortcuts**: Settings › Shortcuts & help – click a key, press a new combination; clashes are shown, reset per shortcut or all
 - **Address bar commands**: type `cmd`, `ps`, `terminal` (or `code .`, `git …`, any program on PATH) to run it in the current folder
-- **Customizable context menu**: WinXplorer's own short menu, editable in Settings (reorder, hide, add any item the Windows menu offers – 7-Zip, WinRAR, Send to…), or the full classic Windows menu; Shift+right-click always opens the full Windows menu. Compress to / extract ZIP built in
+- **Context menu builder** (Settings › Context menu): every menu side by side – files, folders, images, video, audio, documents, archives, programs, the Ctrl menu and the folder background. Drag commands, your apps and Windows items (7-Zip, WinRAR, Send to…) in; onto the top row they become icons. Only the menus you build change, the rest keep the chosen style (WinXplorer's short menu or the full classic Windows menu); *Properties* and *Windows menu…* always close a built menu. Shift+right-click always opens the full Windows menu. Compress to / extract ZIP built in
+- **Own folder / file picker**: adding sidebar folders and apps, *Copy to… / Move to…* and *Browse…* use WinXplorer's own picker with your sidebar (pinned and frequent folders, drives)
+- **Address bar shortcuts**: type a bare `AppData`, `ProgramData`, `LocalLow`, `Program Files`, `Temp`, `Users` or your user name
 - **Submenus** of your own in the context menu (e.g. *Antivirus*, *Tools*), own menus per file kind, a second menu on Ctrl+right-click; commands such as *Run as administrator*, *Open shortcut target location*, *Copy to… / Move to…*, *Copy name*, *Open in Explorer*
 - **Own commands** ("Open with *app*"): pick an installed app or browse for any .exe and name it – the menu shows the program's icon; browser flags (private window, separate profile) with one click
 - **Disc images** (iso, img, vhd, mdf…): double-click or right-click › *Mount* (Windows, or DAEMON Tools / Alcohol / WinCDEmu when installed) – the new drive opens in a tab
