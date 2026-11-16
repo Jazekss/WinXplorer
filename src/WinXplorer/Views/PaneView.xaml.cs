@@ -438,7 +438,7 @@ namespace WinXplorer.Views
             if (name == null || name == item.Name) { FocusList(); return; }
             if (FileOps.Rename(item.FullPath, name, out var err))
                 _vm.ReloadAndSelect(Path.Combine(Path.GetDirectoryName(item.FullPath.TrimEnd('\\')) ?? "", name));
-            else MessageBox.Show(Window.GetWindow(this), err, "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
+            else if (err != null) MessageBox.Show(Window.GetWindow(this), err, "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         /// <summary>Like Explorer: the name turns into an edit box where it is, name without extension selected.</summary>
@@ -491,7 +491,7 @@ namespace WinXplorer.Views
                 {
                     if (FileOps.Rename(item.FullPath, name, out var err))
                         _vm.ReloadAndSelect(Path.Combine(Path.GetDirectoryName(item.FullPath.TrimEnd('\\')) ?? "", name));
-                    else MessageBox.Show(Window.GetWindow(this), err, "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    else if (err != null) MessageBox.Show(Window.GetWindow(this), err, "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
                 FocusList();
             }

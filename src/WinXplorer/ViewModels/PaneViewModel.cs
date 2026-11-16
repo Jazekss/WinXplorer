@@ -653,7 +653,7 @@ namespace WinXplorer.ViewModels
             try
             {
                 var p = FileOps.CreateFolder(Path);
-                _ = LoadAndRename(p);
+                if (p != null) _ = LoadAndRename(p);
             }
             catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); }
         }
@@ -662,7 +662,7 @@ namespace WinXplorer.ViewModels
         {
             if (ReadOnlyHere()) return;
             if (IsThisPC) return;
-            try { var p = FileOps.CreateTextFile(Path); _ = LoadAndRename(p); }
+            try { var p = FileOps.CreateTextFile(Path); if (p != null) _ = LoadAndRename(p); }
             catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); }
         }
 
@@ -670,7 +670,7 @@ namespace WinXplorer.ViewModels
         {
             if (ReadOnlyHere()) return;
             if (IsThisPC) return;
-            try { var p = NewFiles.Create(Path, ext); _ = LoadAndRename(p); }
+            try { var p = NewFiles.Create(Path, ext); if (p != null) _ = LoadAndRename(p); }
             catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); }
         }
 

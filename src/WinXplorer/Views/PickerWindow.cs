@@ -323,7 +323,7 @@ namespace WinXplorer
             try
             {
                 var p = Path.Combine(_path, name.Trim());
-                Directory.CreateDirectory(p);
+                if (FileOps.NewFolderAt(p) == null) return;
                 Go(p);
             }
             catch (Exception ex) { MessageBox.Show(this, ex.Message, "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning); }

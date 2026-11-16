@@ -147,7 +147,11 @@ namespace WinXplorer.Services
             if (string.Equals(dest, path, StringComparison.Ordinal)) return true;
             if (!Native.MoveFileExW(path, dest, 0))
             {
-                error = new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()).Message;
+                int code = Marshal.GetLastWin32Error();
+                // not allowed for this user (e.g. a drive's root): let Windows ask for permission, like Explorer does
+                if (ShellFileOp.IsDenied(code))
+                    return ShellFileOp.Rename(path, newName);   // false = the user said no; nothing more to tell
+                error = new System.ComponentModel.Win32Exception(code).Message;
                 return false;
             }
             UndoService.Renamed(path.TrimEnd('\\'), dest);
@@ -214,7 +218,18 @@ namespace WinXplorer.Services
         public static string CreateFolder(string dir)
         {
             var p = UniqueName(dir, Loc.T("NewFolderName"));
-            Directory.CreateDirectory(p);
+            return NewFolderAt(p);
+        }
+
+        /// <summary>Creates this folder; where the user may not, Windows asks for permission. Null when the user said no.</summary>
+        public static string NewFolderAt(string p)
+        {
+            try { Directory.CreateDirectory(p); }
+            catch (Exception ex) when (ShellFileOp.IsDenied(ex))
+            {
+                if (!ShellFileOp.NewFolder(Path.GetDirectoryName(p)!, Path.GetFileName(p))) return null;
+                return p;
+            }
             UndoService.Created(p);
             return p;
         }
@@ -222,9 +237,25 @@ namespace WinXplorer.Services
         public static string CreateTextFile(string dir)
         {
             var p = UniqueName(dir, Loc.T("NewTextName"), ".txt");
-            File.WriteAllText(p, "");
+            return WriteNew(p, _ => { }) ? p : null;
+        }
+
+        /// <summary>
+        /// Writes a new file. Where the user may not (a drive's root such as F:\, Program Files…), Windows asks for
+        /// permission and puts it there – like Explorer. False when the user said no.
+        /// </summary>
+        public static bool WriteNew(string p, Action<Stream> write)
+        {
+            try
+            {
+                using (var fs = new FileStream(p, FileMode.CreateNew, FileAccess.Write)) write(fs);
+            }
+            catch (Exception ex) when (ShellFileOp.IsDenied(ex))
+            {
+                return ShellFileOp.NewFile(p, write);
+            }
             UndoService.Created(p);
-            return p;
+            return true;
         }
 
         // ---------- Clipboard ----------
@@ -360,17 +391,15 @@ namespace WinXplorer.Services
                     // Screenshots etc. can be pasted straight into a folder as PNG.
                     var img = Clipboard.GetImage();
                     var p = UniqueName(destDir, Loc.T("PastedImage") + " " + DateTime.Now.ToString("yyyy-MM-dd HHmmss"), ".png");
-                    using var fs = File.Create(p);
                     var enc = new PngBitmapEncoder();
                     enc.Frames.Add(BitmapFrame.Create(img));
-                    enc.Save(fs);
-                    UndoService.Created(p);
+                    WriteNew(p, fs => enc.Save(fs));
                 }
                 else if (Clipboard.ContainsText())
                 {
                     var p = UniqueName(destDir, Loc.T("PastedText"), ".txt");
-                    File.WriteAllText(p, Clipboard.GetText());
-                    UndoService.Created(p);
+                    var text = System.Text.Encoding.UTF8.GetBytes(Clipboard.GetText());
+                    WriteNew(p, fs => fs.Write(text));
                 }
             }
             catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); }

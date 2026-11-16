@@ -68,9 +68,9 @@ namespace WinXplorer.Services
             var baseName = ext == ".txt" ? Loc.T("NewTextName") : Loc.T("NewFileName");
             var p = FileOps.UniqueName(dir, baseName, ext);
             var tpl = Catalog.FirstOrDefault(c => c.Ext == ext)?.Template ?? "";
-            File.WriteAllText(p, tpl.Replace("\n", Environment.NewLine));
-            UndoService.Created(p);
-            return p;
+            // same bytes File.WriteAllText wrote (UTF-8, no BOM); where the user may not write, Windows asks for permission
+            var bytes = new System.Text.UTF8Encoding(false).GetBytes(tpl.Replace("\n", Environment.NewLine));
+            return FileOps.WriteNew(p, fs => fs.Write(bytes)) ? p : null;
         }
 
         public static string Normalize(string ext)
