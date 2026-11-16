@@ -623,5 +623,8 @@
  "BuilderFixed": "Vienmēr katras izvēlnes beigās",
  "MenuBuiltNote": "Izvēlne \"{0}\" ir salikta konstruktorā – tiek lietota tā; šī paliek gadījumam, ja tur to notīri.",
  "BuilderCopy": "Kopēt šo izvēlni",
- "BuilderPaste": "Ielīmēt nokopēto izvēlni ({0}) šeit – aizstāj šo"
+ "BuilderPaste": "Ielīmēt nokopēto izvēlni ({0}) šeit – aizstāj šo",
+ "RenameDeniedMany": "{0} neizdevās pārdēvēt: šeit Windows to atļauj tikai ar administratora atļauju (piem. diska saknē vai Program Files). Pārdēvē tos pa vienam ar F2 – tad Windows paprasīs atļauju – vai palaid WinXplorer kā administratoru (nav ieteicams: tad viss, ko tajā dari, notiek ar pilnām tiesībām).",
+ "RenameDrivePrompt": "Diska {0} nosaukums (mainās tikai nosaukums – burts un visi ceļi paliek tādi paši; Windows paprasīs administratora atļauju):",
+ "RenameDriveInvalid": "Diska nosaukumā var būt līdz {0} rakstzīmēm un nevar būt šīs: * ? / \\ | . , ; : + = [ ] < > \""
 }

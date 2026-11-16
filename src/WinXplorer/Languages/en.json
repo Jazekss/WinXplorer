@@ -623,5 +623,8 @@
  "BuilderFixed": "Always at the end of every menu",
  "MenuBuiltNote": "The {0} menu is built in the menu builder – that one is used, this one is kept for when you clear it there.",
  "BuilderCopy": "Copy this menu",
- "BuilderPaste": "Paste the copied menu ({0}) here – replaces this one"
+ "BuilderPaste": "Paste the copied menu ({0}) here – replaces this one",
+ "RenameDeniedMany": "{0} could not be renamed: here Windows allows it only with administrator permission (e.g. in the root of a drive or in Program Files). Rename them one at a time with F2 – Windows then asks for permission – or start WinXplorer as administrator (not recommended: everything you do in it then runs with full rights).",
+ "RenameDrivePrompt": "Name of drive {0} (only the name changes – the letter and all paths stay the same; Windows asks for administrator permission):",
+ "RenameDriveInvalid": "A drive name can have up to {0} characters and none of these: * ? / \\ | . , ; : + = [ ] < > \""
 }

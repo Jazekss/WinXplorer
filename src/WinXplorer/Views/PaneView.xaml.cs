@@ -429,9 +429,44 @@ namespace WinXplorer.Views
             RenameOne(_vm.FirstSelected);
         }
 
+        /// <summary>
+        /// A drive's name (volume label). Only the name shown changes – the letter and every path stay the same.
+        /// Windows allows it only with administrator permission, so it asks.
+        /// </summary>
+        private void RenameDrive(FileItem drive)
+        {
+            var root = drive.FullPath.Length >= 2 ? drive.FullPath[..2] : drive.FullPath;   // "F:"
+            string label = "", format = "";
+            try { var di = new DriveInfo(root); label = di.VolumeLabel; format = di.DriveFormat; } catch { }
+            var name = InputDialog.Ask(Window.GetWindow(this), Loc.T("Rename"), Loc.F("RenameDrivePrompt", root), label);
+            if (name == null) { FocusList(); return; }
+            name = name.Trim();
+            int max = format.StartsWith("FAT", StringComparison.OrdinalIgnoreCase) ? 11 : 32;
+            if (name == label) return;
+            if (name.Length > max || name.IndexOfAny("*?/\\|.,;:+=[]<>\"".ToCharArray()) >= 0)
+            {
+                MessageBox.Show(Window.GetWindow(this), Loc.F("RenameDriveInvalid", max), "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            // already allowed (running as administrator), otherwise Windows' label tool with its permission prompt
+            if (!Native.SetVolumeLabelW(root + "\\", name.Length == 0 ? null : name) && name.Length > 0)   // an empty name would make label.exe wait for input
+            {
+                try
+                {
+                    using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("label.exe", root + " " + name)
+                    { UseShellExecute = true, Verb = "runas", WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden });
+                    p?.WaitForExit(15000);
+                }
+                catch { return; }   // the user said no at the permission prompt
+            }
+            _vm.Refresh();
+            MainWindow.Instance?.VM.Sidebar.Rebuild();
+        }
+
         private void RenameOne(FileItem item)
         {
-            if (item == null || item.IsDrive) return;
+            if (item == null) return;
+            if (item.IsDrive) { RenameDrive(item); return; }
             int selLen = item.IsDirectory ? item.Name.Length : Path.GetFileNameWithoutExtension(item.Name).Length;
             if (RenameInPlace(item, selLen)) return;
             var name = InputDialog.Ask(Window.GetWindow(this), Loc.T("Rename"), Loc.T("RenamePrompt"), item.Name, selLen);

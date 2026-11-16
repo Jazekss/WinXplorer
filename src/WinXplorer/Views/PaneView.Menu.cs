@@ -271,7 +271,7 @@ namespace WinXplorer.Views
                         Add(M(() => FileOps.SetClipboard(paths, false), "Ctrl+C")); break;
                     case "paste" when target != null && FileOps.CanPaste():
                         Add(M(() => FileOps.Paste(target), group == null ? "Ctrl+V" : null)); break;
-                    case "rename" when one != null && !one.IsDrive:
+                    case "rename" when one != null && !_vm.InArchive:
                         Add(M(() => _vm.Rename(), "F2")); break;
                     case "rename" when group != null && group.Count > 1 && !group.Any(g => g.IsDrive):
                         Add(MainWindow.MI(Loc.T("RenameMany"), cmd.Glyph, () => _vm.Rename(), null, "F2")); break;

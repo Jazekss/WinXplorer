@@ -73,6 +73,9 @@ namespace WinXplorer.Interop
         public const uint FILE_ATTRIBUTE_SYSTEM = 0x4;
         public const uint FILE_ATTRIBUTE_REPARSE_POINT = 0x400;
 
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool SetVolumeLabelW(string lpRootPathName, string lpVolumeName);
+
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
         public static extern int AssocQueryStringW(int flags, int str, string pszAssoc, string pszExtra, System.Text.StringBuilder pszOut, ref uint pcchOut);
 

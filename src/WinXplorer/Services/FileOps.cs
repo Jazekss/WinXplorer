@@ -167,12 +167,16 @@ namespace WinXplorer.Services
             var done = new List<(string from, string to)>();
             var work = pairs.Where(p => !string.Equals(p.from, p.to, StringComparison.Ordinal)).ToList();
             var temp = new List<(string from, string tmp, string to)>();
+            int denied = 0;
             foreach (var (from, to) in work)
             {
                 var tmp = Path.Combine(Path.GetDirectoryName(from) ?? "", ".wxren-" + Guid.NewGuid().ToString("N")[..12]);
-                if (Native.MoveFileExW(from, tmp, 0)) temp.Add((from, tmp, to));
-                else errors.Add(Path.GetFileName(from) + ": " + new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()).Message);
+                if (Native.MoveFileExW(from, tmp, 0)) { temp.Add((from, tmp, to)); continue; }
+                int code = Marshal.GetLastWin32Error();
+                if (ShellFileOp.IsDenied(code)) denied++;   // explained once below instead of "Access is denied" per file
+                else errors.Add(Path.GetFileName(from) + ": " + new System.ComponentModel.Win32Exception(code).Message);
             }
+            if (denied > 0) errors.Insert(0, Loc.F("RenameDeniedMany", Loc.Items(denied)));
             foreach (var (from, tmp, to) in temp)
             {
                 if (Native.MoveFileExW(tmp, to, 0)) { done.Add((from, to)); continue; }
