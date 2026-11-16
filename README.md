@@ -18,7 +18,17 @@ Double-click on folders and drives, folder links and Win+E then open WinXplorer;
 programs open straight in Explorer (torrent clients, a browser's *Show in folder*) move over too. The desktop, taskbar,
 Control Panel and Recycle Bin stay with Windows. Switch it off – or uninstall – and Windows Explorer is the default again.
 
-## Features (v0.1)
+## What's new in 0.2
+
+- **Folder views (`view.wxv`)** – turn a folder into a page of project cards with logos, categories, stats, "Done" marks and an *Open in browser* button, or into a picture gallery
+- **Context menu builder** – every menu side by side, drag commands, apps and Windows items in; copy / paste a whole menu to another one
+- **Own folder / file picker** with your sidebar, back / forward (also the mouse buttons), icon sizes with picture thumbnails
+- **Asks Windows for permission** instead of "Access denied" – rename or create files in protected places such as a drive's root
+- **Rename drives** with F2, clear messages when something can't be renamed
+- **Address bar shortcuts**: `AppData`, `ProgramData`, `Temp`, your user name…
+- Recommended apps for pictures, video and music in the menu, settings no longer revert when several windows are open
+
+## Features
 
 - **Tabs** (Ctrl+T / Ctrl+W / Ctrl+Tab, middle-click to close) – restored on start; drag to reorder, drag out of the window to open it in a new window; tabs shrink when many are open and the strip scrolls with the mouse wheel
 - **Settings tab** (Ctrl+, or ⋯ › Settings): language, theme, 6 accent colors (or the Windows accent), startup and view options
@@ -33,7 +43,8 @@ Control Panel and Recycle Bin stay with Windows. Switch it off – or uninstall 
 - **Address bar commands**: type `cmd`, `ps`, `terminal` (or `code .`, `git …`, any program on PATH) to run it in the current folder
 - **Context menu builder** (Settings › Context menu): every menu side by side – files, folders, images, video, audio, documents, archives, programs, the Ctrl menu and the folder background. Drag commands, your apps and Windows items (7-Zip, WinRAR, Send to…) in; onto the top row they become icons. Only the menus you build change, the rest keep the chosen style: WinXplorer's short menu – still editable in Settings per kind, for the Ctrl menu and the folder background, with the apps Windows recommends for pictures, video and music added automatically – or the full classic Windows menu; *Properties* and *Windows menu…* always close a built menu. Shift+right-click always opens the full Windows menu. Compress to / extract ZIP built in
 - **Folder views (`view.wxv`)**: turn a folder into a page – your projects as cards with their logos (logo.png, favicon, icon… found by themselves), grouped by category, with numbers on top (projects, done / in progress, newest, oldest), created date and age, "Done" marks and an *Open in browser* button for web projects (`http://localhost/{rel}/`, e.g. for XAMPP) – or a gallery of pictures. Right-click › New › *Folder view*, WinXplorer suggests a layout, adjust it in the built-in settings. Settings are plain JSON in `view.wxv`, added pictures in the hidden `.wxv` folder next to it; the icon at the top opens the plain folder. How-to: Settings › Shortcuts & help
-- **Own folder / file picker**: adding sidebar folders and apps, *Copy to… / Move to…* and *Browse…* use WinXplorer's own picker with your sidebar (pinned and frequent folders, drives)
+- **Own folder / file picker**: adding sidebar folders and apps, *Copy to… / Move to…* and *Browse…* use WinXplorer's own picker with your sidebar (pinned and frequent folders, drives); back / forward with the mouse buttons, list or icons with picture thumbnails (Ctrl+wheel)
+- **Protected places**: renaming or creating files where Windows needs permission (e.g. a drive's root) asks for it through Windows' own prompt instead of failing with "Access denied"; drives are renamed with F2
 - **Address bar shortcuts**: type a bare `AppData`, `ProgramData`, `LocalLow`, `Program Files`, `Temp`, `Users` or your user name
 - **Submenus** of your own in the context menu (e.g. *Antivirus*, *Tools*), own menus per file kind, a second menu on Ctrl+right-click; commands such as *Run as administrator*, *Open shortcut target location*, *Copy to… / Move to…*, *Copy name*, *Open in Explorer*
 - **Own commands** ("Open with *app*"): pick an installed app or browse for any .exe and name it – the menu shows the program's icon; browser flags (private window, separate profile) with one click
@@ -72,7 +83,7 @@ dotnet publish src/WinXplorer -c Release -o publish
 Installer (needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)): `.\build-installer.ps1` publishes a self-contained
 build to `artifacts\app` and writes `artifacts\WinXplorer-Setup-<version>.exe`.
 
-Settings are stored in `%APPDATA%\WinXplorer\settings.json`.
+Settings are stored in `%LOCALAPPDATA%\JKapps\WinXplorer\settings.json`.
 
 ## Keyboard
 
