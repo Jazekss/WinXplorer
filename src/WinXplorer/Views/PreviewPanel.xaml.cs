@@ -712,6 +712,11 @@ namespace WinXplorer.Views
             PlayGlyph.Text = "";
             SeekFill.Width = 0;
             TimeText.Text = "";
+            // hover popup: nothing there can be clicked – no play / volume buttons; while it plays, a plain progress line and the time
+            PlayBtn.Visibility = VolPanel.Visibility = _hoverMode ? Visibility.Collapsed : Visibility.Visible;
+            SeekBar.Visibility = _hoverMode && !AutoPlay ? Visibility.Hidden : Visibility.Visible;
+            SeekBar.IsHitTestVisible = !_hoverMode;
+            SeekBar.Cursor = _hoverMode ? null : Cursors.Hand;
             // seeking previews frames for video; for sound only it stops playback from starting at all
             Media.ScrubbingEnabled = !audio;
             Media.LayoutTransform = Transform.Identity;
@@ -837,7 +842,8 @@ namespace WinXplorer.Views
             var pos = Media.Position;
             SeekFill.Width = total.TotalSeconds > 0 ? SeekBar.ActualWidth * pos.TotalSeconds / total.TotalSeconds : 0;
             string f = total.TotalHours >= 1 ? @"h\:mm\:ss" : @"m\:ss";
-            TimeText.Text = pos.ToString(f) + " / " + total.ToString(f);
+            // hover popup without playing: only the length
+            TimeText.Text = _hoverMode && !AutoPlay ? total.ToString(f) : pos.ToString(f) + " / " + total.ToString(f);
         }
 
         private void Seek_MouseDown(object sender, MouseButtonEventArgs e)
