@@ -122,6 +122,8 @@ namespace WinXplorer.Models
         /// <summary>Folders whose view was changed: path → view, sort, grouping, icon size.</summary>
         public Dictionary<string, FolderView> FolderViews { get; set; }
         public int IconSize { get; set; } = 96;
+        /// <summary>WinXplorer's own pick window: 0 = list with details, otherwise the icon size in pixels.</summary>
+        public int PickerIconSize { get; set; }
 
         public double WinLeft { get; set; } = double.NaN;
         public double WinTop { get; set; } = double.NaN;

@@ -32,8 +32,12 @@ namespace WinXplorer
         private readonly ListBox _side = new() { BorderThickness = new Thickness(0), Background = Brushes.Transparent };
         private readonly ListBox _list = new() { BorderThickness = new Thickness(0), Background = Brushes.Transparent, SelectionMode = SelectionMode.Extended };
         private readonly TextBlock _empty = new() { Margin = new Thickness(12), Visibility = Visibility.Collapsed };
-        private readonly Button _ok, _upBtn, _backBtn;
-        private readonly Stack<string> _history = new();
+        private readonly Button _ok, _upBtn, _backBtn, _fwdBtn;
+        private readonly Stack<string> _history = new(), _forward = new();
+        private List<FileItem> _shown = new();
+        private static readonly HashSet<string> ThumbExts = new(StringComparer.OrdinalIgnoreCase)
+            { ".png", ".jpg", ".jpeg", ".jfif", ".webp", ".gif", ".bmp", ".ico", ".tif", ".tiff", ".heic", ".heif", ".avif", ".svg" };
+        private static readonly int[] Sizes = { 0, 48, 96, 160 };
         private string _path;
         private CancellationTokenSource _cts;
         private string[] _result;
@@ -80,9 +84,12 @@ namespace WinXplorer
             if (!_multi) _list.SelectionMode = SelectionMode.Single;
 
             // ---- top: back, up, address, new folder ----
-            _backBtn = IconButton("", Loc.T("HkBack"), () => { if (_history.Count > 0) Go(_history.Pop(), false); });
-            _upBtn = IconButton("", Loc.T("HkUp"), () => { if (!string.IsNullOrEmpty(_path)) Go(FileSystem.GetParent(_path)); });
+            _backBtn = IconButton("", Loc.T("HkBack"), Back);
+            _fwdBtn = IconButton("", Loc.T("HkForward"), Forward);
+            _upBtn = IconButton("", Loc.T("HkUp"), Up);
             var newFolder = IconButton("", Loc.T("NewFolder"), NewFolder);
+            Button sizeBtn = null;
+            sizeBtn = IconButton("", Loc.T("HkIconSize"), () => SizeMenu(sizeBtn));
             _address.Style = (Style)FindResource("InputBox");
             _address.KeyDown += (_, e) =>
             {
@@ -94,7 +101,8 @@ namespace WinXplorer
                 e.Handled = true;
             };
             var top = new DockPanel { Margin = new Thickness(12, 12, 12, 8) };
-            top.Children.Add(_backBtn); top.Children.Add(_upBtn);
+            top.Children.Add(_backBtn); top.Children.Add(_fwdBtn); top.Children.Add(_upBtn);
+            DockPanel.SetDock(sizeBtn, Dock.Right); top.Children.Add(sizeBtn);
             DockPanel.SetDock(newFolder, Dock.Right); top.Children.Add(newFolder);
             _address.Margin = new Thickness(6, 0, 6, 0);
             top.Children.Add(_address);
@@ -122,8 +130,9 @@ namespace WinXplorer
             _list.KeyDown += (_, e) =>
             {
                 if (e.Key == Key.Enter && _list.SelectedItem is ListBoxItem { Tag: FileItem f }) { Activate(f); e.Handled = true; }
-                else if (e.Key == Key.Back) { _upBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); e.Handled = true; }
+                else if (e.Key == Key.Back) { Up(); e.Handled = true; }
             };
+            ApplySize();
             _list.SelectionChanged += (_, _) => SelectionToName();
             _empty.SetResourceReference(TextBlock.ForegroundProperty, "FgDimBrush");
             var middle = new Grid();
@@ -167,8 +176,29 @@ namespace WinXplorer
             Content = root;
             PreviewKeyDown += (_, e) =>
             {
-                if (e.Key == Key.Back && Keyboard.FocusedElement is not TextBox) { _upBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); e.Handled = true; }
-                else if (e.Key == Key.Left && Keyboard.Modifiers == ModifierKeys.Alt) { _backBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); e.Handled = true; }
+                var key = e.Key == Key.System ? e.SystemKey : e.Key;
+                if (key == Key.Back && Keyboard.FocusedElement is not TextBox) { Up(); e.Handled = true; }
+                else if (key == Key.Left && Keyboard.Modifiers == ModifierKeys.Alt) { Back(); e.Handled = true; }
+                else if (key == Key.Right && Keyboard.Modifiers == ModifierKeys.Alt) { Forward(); e.Handled = true; }
+                else if (key == Key.Up && Keyboard.Modifiers == ModifierKeys.Alt) { Up(); e.Handled = true; }
+                else if (key == Key.BrowserBack) { Back(); e.Handled = true; }
+                else if (key == Key.BrowserForward) { Forward(); e.Handled = true; }
+            };
+            // the mouse's own back / forward buttons
+            PreviewMouseDown += (_, e) =>
+            {
+                if (e.ChangedButton == MouseButton.XButton1) { Back(); e.Handled = true; }
+                else if (e.ChangedButton == MouseButton.XButton2) { Forward(); e.Handled = true; }
+            };
+            // Ctrl + wheel: bigger / smaller
+            _list.PreviewMouseWheel += (_, e) =>
+            {
+                if (Keyboard.Modifiers != ModifierKeys.Control) return;
+                int i = Array.IndexOf(Sizes, AppState.Settings.PickerIconSize);
+                if (i < 0) i = 0;
+                i = Math.Clamp(i + (e.Delta > 0 ? 1 : -1), 0, Sizes.Length - 1);
+                SetSize(Sizes[i]);
+                e.Handled = true;
             };
             Closed += (_, _) => _cts?.Cancel();
         }
@@ -221,11 +251,12 @@ namespace WinXplorer
         private async void Go(string path, bool remember = true)
         {
             if (path == null) return;
-            if (remember && _path != null && !string.Equals(_path, path, StringComparison.OrdinalIgnoreCase)) _history.Push(_path);
+            if (remember && _path != null && !string.Equals(_path, path, StringComparison.OrdinalIgnoreCase)) { _history.Push(_path); _forward.Clear(); }
             _path = path;
             _address.Text = path == FileSystem.ThisPC ? Loc.T("ThisPC") : path;
             _upBtn.IsEnabled = path != FileSystem.ThisPC;
             _backBtn.IsEnabled = _history.Count > 0;
+            _fwdBtn.IsEnabled = _forward.Count > 0;
             _cts?.Cancel();
             var cts = _cts = new CancellationTokenSource();
             List<FileItem> found;
@@ -244,8 +275,8 @@ namespace WinXplorer
             catch (OperationCanceledException) { return; }
             catch (Exception ex) { found = new(); _empty.Text = ex.Message; }
             if (cts.IsCancellationRequested) return;
-            _list.Items.Clear();
-            foreach (var f in found) _list.Items.Add(Row(f));
+            _shown = found;
+            FillList();
             _empty.Visibility = found.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             if (found.Count == 0 && string.IsNullOrEmpty(_empty.Text)) _empty.Text = Loc.T("PickEmpty");
             if (found.Count > 0) _empty.Text = "";
@@ -256,6 +287,126 @@ namespace WinXplorer
         }
 
         private bool _suppressSide;
+
+        private void Back()
+        {
+            if (_history.Count == 0) { Up(); return; }   // nothing to go back to: leave the folder
+            if (_path != null) _forward.Push(_path);
+            Go(_history.Pop(), false);
+        }
+
+        private void Forward()
+        {
+            if (_forward.Count == 0) return;
+            if (_path != null) _history.Push(_path);
+            Go(_forward.Pop(), false);
+        }
+
+        private void Up()
+        {
+            if (string.IsNullOrEmpty(_path) || _path == FileSystem.ThisPC) return;
+            var from = _path;
+            Go(FileSystem.GetParent(_path));
+            _selectAfter = from;
+        }
+
+        private string _selectAfter;
+
+        // ---------------- size: list with details or icons / thumbnails ----------------
+        private static int CurSize => Array.IndexOf(Sizes, AppState.Settings.PickerIconSize) >= 0 ? AppState.Settings.PickerIconSize : 0;
+
+        private void SizeMenu(Button b)
+        {
+            var cm = new ContextMenu { PlacementTarget = b, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+            foreach (var (size, key) in new[] { (0, "ViewDetails"), (48, "IconsMedium"), (96, "IconsLarge"), (160, "IconsXL") })
+            {
+                var mi = new MenuItem { Header = Loc.T(key), IsCheckable = true, IsChecked = CurSize == size };
+                int s = size;
+                mi.Click += (_, _) => SetSize(s);
+                cm.Items.Add(mi);
+            }
+            cm.IsOpen = true;
+        }
+
+        private void SetSize(int size)
+        {
+            if (CurSize == size) return;
+            AppState.Settings.PickerIconSize = size;
+            AppState.Save();
+            ApplySize();
+            FillList();
+        }
+
+        private void ApplySize()
+        {
+            bool tiles = CurSize > 0;
+            ScrollViewer.SetHorizontalScrollBarVisibility(_list, ScrollBarVisibility.Disabled);
+            if (tiles)
+            {
+                VirtualizingPanel.SetIsVirtualizing(_list, false);
+                _list.ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(WrapPanel)));
+            }
+            else
+            {
+                VirtualizingPanel.SetIsVirtualizing(_list, true);
+                _list.ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
+            }
+        }
+
+        private void FillList()
+        {
+            _list.Items.Clear();
+            int size = CurSize;
+            foreach (var f in _shown) _list.Items.Add(size > 0 ? Tile(f, size) : Row(f));
+            if (_selectAfter != null)
+            {
+                var hit = _list.Items.OfType<ListBoxItem>().FirstOrDefault(i => i.Tag is FileItem fi && string.Equals(fi.FullPath.TrimEnd('\\'), _selectAfter.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase));
+                _selectAfter = null;
+                if (hit != null) { _list.SelectedItem = hit; hit.BringIntoView(); }
+            }
+        }
+
+        private ListBoxItem Tile(FileItem f, int size)
+        {
+            var sp = new StackPanel { Width = size + 28, Margin = new Thickness(2, 4, 2, 4) };
+            var img = new Image { Width = size, Height = size, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Center };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+            img.Source = f.IsDrive ? IconService.GetPathIcon(f.FullPath, true) : IconService.GetLargeIcon(f, size) ?? IconService.GetIcon(f, out _);
+            sp.Children.Add(img);
+            var name = new TextBlock
+            {
+                Text = f.IsDrive ? FileSystem.DisplayName(f.FullPath) : f.Name, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis,
+                TextAlignment = TextAlignment.Center, MaxHeight = 34, Margin = new Thickness(0, 4, 0, 0), FontSize = 12
+            };
+            if (f.IsHidden) name.Opacity = 0.6;
+            sp.Children.Add(name);
+            if (!f.IsDirectory && !f.IsDrive && ThumbExts.Contains(Path.GetExtension(f.Name))) _ = LoadThumb(f.FullPath, img, size);
+            return new ListBoxItem { Content = sp, Tag = f, ToolTip = f.IsDrive ? null : f.Name };
+        }
+
+        private static readonly SemaphoreSlim _decoders = new(3);
+
+        private async Task LoadThumb(string path, Image target, int size)
+        {
+            var cts = _cts;
+            await _decoders.WaitAsync();
+            try
+            {
+                if (cts?.IsCancellationRequested == true) return;
+                var img = await ImageLoader.RunSta(() =>
+                {
+                    try
+                    {
+                        var (src, _) = ImageLoader.Load(path, Math.Max(size * 2, 192));
+                        if (src != null && src.CanFreeze && !src.IsFrozen) src.Freeze();
+                        return src;
+                    }
+                    catch { return null; }
+                });
+                if (img != null) target.Source = img;
+            }
+            finally { _decoders.Release(); }
+        }
 
         private static bool Matches(string name, string[] patterns)
         {
