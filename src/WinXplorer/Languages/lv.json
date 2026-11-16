@@ -711,5 +711,9 @@
  "WxvImages": "Attēli",
  "WxvMoreFiles": "…un vēl {0}",
  "HelpWxvTitle": "Mapju skati (view.wxv)",
- "HelpWxv": "Pārvērt jebkuru mapi lapā – tavi projekti ar logo, sagrupēti pa kategorijām, ar skaitļiem augšā un pogu \"Atvērt pārlūkā\", vai attēlu galerija.\n\n1. Atver mapi, labais klikšķis tukšā vietā › Jauns › Mapes skats (view.wxv).\n2. WinXplorer apskata mapi un piedāvā izkārtojumu; maini virsrakstu, kartīšu skaitu rindā, ko rādīt, un katram projektam nosaukumu, attēlu, Pabeigts un Web – tad Saglabāt.\n3. Turpmāk mape atveras kā šī lapa. Ikonas augšā atkal atver parasto mapi vai iestatījumus.\n\nAttēli: projekta logo.png / logo.svg / icon.png / favicon.ico (arī mapēs public, assets, img…) tiek izmantots pats. Iestatījumi glabājas view.wxv (vienkāršs JSON), pievienotie attēli slēptajā .wxv mapē – kopējot mapi, skats ceļo līdzi."
+ "HelpWxv": "Pārvērt jebkuru mapi lapā – tavi projekti ar logo, sagrupēti pa kategorijām, ar skaitļiem augšā un pogu \"Atvērt pārlūkā\", vai attēlu galerija.\n\n1. Atver mapi, labais klikšķis tukšā vietā › Jauns › Mapes skats (view.wxv).\n2. WinXplorer apskata mapi un piedāvā izkārtojumu; maini virsrakstu, kartīšu skaitu rindā, ko rādīt, un katram projektam nosaukumu, attēlu, Pabeigts un Web – tad Saglabāt.\n3. Turpmāk mape atveras kā šī lapa. Ikonas augšā atkal atver parasto mapi vai iestatījumus.\n\nAttēli: projekta logo.png / logo.svg / icon.png / favicon.ico (arī mapēs public, assets, img…) tiek izmantots pats. Iestatījumi glabājas view.wxv (vienkāršs JSON), pievienotie attēli slēptajā .wxv mapē – kopējot mapi, skats ceļo līdzi.",
+ "ViewForSubfolders": "Lietot šo skatu arī apakšmapēm",
+ "ViewForSubfoldersDone": "Apakšmapes tagad izskatās tāpat (ja vien kādu nemaini atsevišķi)",
+ "QuickViewAutoPlay": "Ātrajā skatā atskaņot video un audio uzreiz",
+ "QuickViewAutoPlayDesc": "Space uz video vai dziesmas to uzreiz sāk atskaņot."
 }

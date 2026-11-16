@@ -52,6 +52,7 @@ namespace WinXplorer
             opt ??= new StartOptions();
             var startPath = opt.Path;
             _isSecondary = startPath != null;
+            AppState.ExtraWindowSaves = _isSecondary;
 
             var icon = App.LoadAppIcon();
             AppIcon.Source = icon;
@@ -270,7 +271,7 @@ namespace WinXplorer
             st.SidebarWidth = SidebarCol.ActualWidth;
             if (st.ShowPreview && !VM.IsSettingsActive) st.PreviewWidth = PreviewCol.ActualWidth;
             if (!_isSecondary) VM.SaveSession();
-            AppState.Save(keepSavedSession: _isSecondary);
+            AppState.Save(_isSecondary);
             Preview.Clear();
         }
 
@@ -925,6 +926,7 @@ namespace WinXplorer
             items.Add(MI(Loc.T("ShowExtensions"), null, () => { s.ShowExtensions = !s.ShowExtensions; ForEachPane(x => x.NotifyRowHeight()); }, s.ShowExtensions));
             items.Add(MI(Loc.T("PreviewPane"), null, () => PreviewToggle_Click(null, null), s.ShowPreview, "Ctrl+Shift+P"));
             items.Add(new Separator());
+            items.Add(MI(Loc.T("ViewForSubfolders"), null, () => { bool was = p.ViewForSubfolders; p.ToggleViewForSubfolders(); if (!was) Notify.Show(Loc.T("ViewForSubfoldersDone")); }, p.ViewForSubfolders));
             items.Add(MI(Loc.T("ViewForAll"), null, () => { p.ApplyViewToAllFolders(); Notify.Show(Loc.T("ViewForAllDone")); }));
         }
 

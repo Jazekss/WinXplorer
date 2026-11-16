@@ -711,5 +711,9 @@
  "WxvImages": "Pictures",
  "WxvMoreFiles": "…and {0} more",
  "HelpWxvTitle": "Folder views (view.wxv)",
- "HelpWxv": "Turn any folder into a page – your projects with their logos, grouped by category, with numbers on top and an \"Open in browser\" button, or a gallery of pictures.\n\n1. Open the folder, right-click empty space › New › Folder view (view.wxv).\n2. WinXplorer looks at the folder and suggests a layout; change the title, cards in a row, what is shown, and per project its name, picture, Done and Web – then Save.\n3. From now on the folder opens as this page. The icons at the top open the plain folder or the settings again.\n\nPictures: a project's logo.png / logo.svg / icon.png / favicon.ico (also in public, assets, img…) is used by itself. Settings live in view.wxv (plain JSON), pictures you add in the hidden .wxv folder – copy the folder and the view goes with it."
+ "HelpWxv": "Turn any folder into a page – your projects with their logos, grouped by category, with numbers on top and an \"Open in browser\" button, or a gallery of pictures.\n\n1. Open the folder, right-click empty space › New › Folder view (view.wxv).\n2. WinXplorer looks at the folder and suggests a layout; change the title, cards in a row, what is shown, and per project its name, picture, Done and Web – then Save.\n3. From now on the folder opens as this page. The icons at the top open the plain folder or the settings again.\n\nPictures: a project's logo.png / logo.svg / icon.png / favicon.ico (also in public, assets, img…) is used by itself. Settings live in view.wxv (plain JSON), pictures you add in the hidden .wxv folder – copy the folder and the view goes with it.",
+ "ViewForSubfolders": "Use this view for subfolders too",
+ "ViewForSubfoldersDone": "Subfolders now look the same (unless you change one of them)",
+ "QuickViewAutoPlay": "Play video and audio at once in Quick view",
+ "QuickViewAutoPlayDesc": "Space on a video or song starts playing it right away."
 }

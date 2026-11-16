@@ -50,6 +50,8 @@ namespace WinXplorer.Models
         public bool GroupByDate { get; set; }
         /// <summary>Details view column widths the user dragged (name, modified, type, size, location); null = automatic.</summary>
         public Dictionary<string, double> Columns { get; set; }
+        /// <summary>Subfolders without a view of their own look the same (View › Use for subfolders too).</summary>
+        public bool Subfolders { get; set; }
     }
 
     public sealed class AppSettings
@@ -89,6 +91,8 @@ namespace WinXplorer.Models
         public bool HoverPreview { get; set; }
         /// <summary>…and video / audio there start playing at once.</summary>
         public bool HoverAutoPlay { get; set; } = true;
+        /// <summary>Quick view (Space): video and audio start playing at once.</summary>
+        public bool QuickViewAutoPlay { get; set; } = true;
         /// <summary>Double-click / Enter on a picture opens WinXplorer's viewer instead of the default app.</summary>
         public bool ImagesOpenInViewer { get; set; } = true;
         /// <summary>Double-click on a zip / 7z / rar opens it like a folder.</summary>

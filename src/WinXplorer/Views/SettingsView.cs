@@ -201,6 +201,7 @@ namespace WinXplorer.Views
             Card("", Loc.T("SpaceViewer"), Loc.T("SpaceViewerDesc"), Switch(S.SpaceOpensViewer, v => S.SpaceOpensViewer = v));
             Card("\uE8FF", Loc.T("HoverPreview"), Loc.T("HoverPreviewDesc"), Switch(S.HoverPreview, v => S.HoverPreview = v));
             Card("\uE768", Loc.T("HoverAutoPlay"), Loc.T("HoverAutoPlayDesc"), Switch(S.HoverAutoPlay, v => S.HoverAutoPlay = v));
+            Card("", Loc.T("QuickViewAutoPlay"), Loc.T("QuickViewAutoPlayDesc"), Switch(S.QuickViewAutoPlay, v => S.QuickViewAutoPlay = v));
             Card("", Loc.T("DblClickViewer"), Loc.T("DblClickViewerDesc"), Switch(S.ImagesOpenInViewer, v => S.ImagesOpenInViewer = v));
             // archives: browse them in WinXplorer (with its archive icon) or hand them to the program Windows uses for them
             var arch = new WrapPanel();

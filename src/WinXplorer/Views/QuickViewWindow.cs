@@ -41,6 +41,7 @@ namespace WinXplorer.Views
             SetResourceReference(ForegroundProperty, "FgBrush");
             SetResourceReference(FontFamilyProperty, "UiFont");
             FontSize = 12;
+            _preview.AutoPlay = AppState.Settings.QuickViewAutoPlay;
 
             // [‹ previous name]  ‹  3 / 7  ›  [next name ›] – the counter exactly in the middle
             var root = new DockPanel();

@@ -66,8 +66,7 @@ namespace WinXplorer.ViewModels
         private void ApplyFolderView(string path)
         {
             var s = AppState.Settings;
-            FolderView fv = null;
-            if (path != null) FolderViews.TryGetValue(path, out fv);
+            var fv = FindView(path);
             _viewMode = fv?.View ?? s.ViewMode;
             _iconSize = fv?.IconSize > 0 ? fv.IconSize : s.IconSize;
             _sortBy = fv?.SortBy ?? s.DefaultSortBy ?? "name";
@@ -78,17 +77,54 @@ namespace WinXplorer.ViewModels
                 OnPropertyChanged(n);
         }
 
+        /// <summary>The folder's own view, or one a parent folder hands down to its subfolders.</summary>
+        private static FolderView FindView(string path)
+        {
+            if (string.IsNullOrEmpty(path) || path == FileSystem.ThisPC) return null;
+            var d = FolderViews;
+            if (d.TryGetValue(path, out var own)) return own;
+            for (var p = SafeParent(path); !string.IsNullOrEmpty(p); p = SafeParent(p))
+                if (d.TryGetValue(p, out var up) && up.Subfolders) return up;
+            return null;
+        }
+
+        private static string SafeParent(string p)
+        {
+            try { return p.Length <= 3 ? null : System.IO.Path.GetDirectoryName(p.TrimEnd('\\')) is { Length: > 0 } x ? x : null; }
+            catch { return null; }
+        }
+
+        /// <summary>The parent folder whose view this folder follows (null = its own or the default).</summary>
+        public bool ViewForSubfolders => _path != null && FolderViews.TryGetValue(_path, out var fv) && fv.Subfolders;
+
+        /// <summary>View › Use for subfolders too: this view for every subfolder (their own remembered views are dropped). Again: off.</summary>
+        public void ToggleViewForSubfolders()
+        {
+            if (string.IsNullOrEmpty(_path) || IsThisPC) return;
+            var d = FolderViews;
+            bool on = !ViewForSubfolders;
+            d.TryGetValue(_path, out var old);
+            d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate, Columns = old?.Columns, Subfolders = on };
+            if (on)
+            {
+                var prefix = _path.TrimEnd('\\') + "\\";
+                foreach (var k in d.Keys.Where(k => k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList()) d.Remove(k);
+            }
+            AppState.SaveSoon();
+        }
+
         private void SaveFolderView()
         {
             if (string.IsNullOrEmpty(_path)) return;
             var d = FolderViews;
             if (!d.ContainsKey(_path) && d.Count >= 1000) d.Remove(d.Keys.First());
             d.TryGetValue(_path, out var old);
-            d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate, Columns = old?.Columns };
+            d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate, Columns = old?.Columns, Subfolders = old?.Subfolders == true };
+            AppState.SaveSoon();
         }
 
         /// <summary>Column widths the user set for this folder's details view (null = automatic).</summary>
-        public Dictionary<string, double> ColumnWidths => _path != null && FolderViews.TryGetValue(_path, out var fv) ? fv.Columns : null;
+        public Dictionary<string, double> ColumnWidths => FindView(_path)?.Columns;
 
         /// <summary>Remembers the details view's column widths for this folder only.</summary>
         public void SaveColumnWidths(Dictionary<string, double> widths)
@@ -101,6 +137,7 @@ namespace WinXplorer.ViewModels
                 fv = d[_path] = new FolderView { View = _viewMode, IconSize = _iconSize, SortBy = _sortBy, SortDesc = _sortDesc, GroupByDate = _groupByDate };
             }
             fv.Columns = widths;
+            AppState.SaveSoon();
         }
 
         /// <summary>View › Apply to all folders: this folder's view becomes the default and every remembered one is dropped.</summary>
