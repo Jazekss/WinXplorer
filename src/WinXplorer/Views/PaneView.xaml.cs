@@ -142,6 +142,7 @@ namespace WinXplorer.Views
             BindItems();
             BuildCrumbs();
             ApplyColumns();
+            UpdateFolderView();
             UpdateHeaders();
             UpdateFrame();
             UpdateSearchHint();
@@ -156,7 +157,9 @@ namespace WinXplorer.Views
                 case nameof(PaneViewModel.GroupByDate):
                     BindItems(); break;
                 case nameof(PaneViewModel.Path):
-                    BuildCrumbs(); ApplyColumns(); break;
+                    BuildCrumbs(); ApplyColumns();
+                    UpdateFolderView(_vm.ForceView); _vm.ForceView = false;
+                    break;
                 case nameof(PaneViewModel.SortBy):
                 case nameof(PaneViewModel.SortDesc):
                     UpdateHeaders(); break;
@@ -397,6 +400,7 @@ namespace WinXplorer.Views
         {
             if (what == "address") EnterAddressEdit();
             else if (what == "search") { SearchBox.Focus(); SearchBox.SelectAll(); }
+            else if (what == "folderview") UpdateFolderView(edit: true);
         }
 
         private void ItemToolTip_Opening(object sender, ToolTipEventArgs e)
@@ -456,9 +460,16 @@ namespace WinXplorer.Views
                     using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("label.exe", root + " " + name)
                     { UseShellExecute = true, Verb = "runas", WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden });
                     p?.WaitForExit(15000);
+                    if (p != null && p.HasExited && p.ExitCode != 0)
+                    {
+                        MessageBox.Show(Window.GetWindow(this), Loc.F("RenameDriveFailed", root), "WinXplorer", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
                 }
                 catch { return; }   // the user said no at the permission prompt
             }
+            // Windows keeps drive names in a cache: tell it this one changed, or the old name stays on screen
+            Native.SHChangeNotify(0x00002000 /* SHCNE_UPDATEITEM */, 0x0005 /* SHCNF_PATHW */, root + "\\", IntPtr.Zero);
             _vm.Refresh();
             MainWindow.Instance?.VM.Sidebar.Rebuild();
         }
@@ -558,6 +569,14 @@ namespace WinXplorer.Views
             if (item.IsDirectory)
             {
                 if (newTab) MainWindow.Instance.OpenInNewTab(item.FullPath);
+                else _vm.Navigate(item.FullPath);
+                return;
+            }
+            // view.wxv: the folder's own page (set it up when it's new / empty)
+            if (!item.InArchive && item.Name.Equals(FolderViews.FileName, StringComparison.OrdinalIgnoreCase))
+            {
+                var dir = Path.GetDirectoryName(item.FullPath);
+                if (string.Equals(dir, _vm.Path, StringComparison.OrdinalIgnoreCase)) { _plainPath = null; UpdateFolderView(force: true); }
                 else _vm.Navigate(item.FullPath);
                 return;
             }

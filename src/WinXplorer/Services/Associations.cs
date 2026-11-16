@@ -101,6 +101,52 @@ namespace WinXplorer.Services
             Native.SHChangeNotify(0x08000000 /*SHCNE_ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero);
         }
 
+        // ---------------- view.wxv: WinXplorer's own file type ----------------
+        private const string ViewProgId = "WinXplorer.View";
+
+        /// <summary>.wxv files open in WinXplorer and get their icon in Explorer too (current user only, no admin rights).</summary>
+        public static void ApplyViewFiles(bool on)
+        {
+            try
+            {
+                using var classes = Registry.CurrentUser.CreateSubKey(@"Software\Classes");
+                if (!on)
+                {
+                    try { classes.DeleteSubKeyTree(ViewProgId, false); } catch { }
+                    bool ours;
+                    using (var k = classes.OpenSubKey(".wxv")) ours = k?.GetValue(null) as string == ViewProgId;
+                    if (ours) try { classes.DeleteSubKeyTree(".wxv", false); } catch { }
+                    Native.SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+                    return;
+                }
+                var exe = Environment.ProcessPath;
+                if (string.IsNullOrEmpty(exe) || exe.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase)) return;
+                // runs at every start: skip when nothing changed
+                var sig = exe + "|1|" + Loc.T("WxvTypeName");
+                using (var existing = classes.OpenSubKey(ViewProgId))
+                    if (existing?.GetValue("WinXplorerSig") as string == sig) return;
+                var icon = Path.Combine(IconDir, "wxv-file.ico");
+                if (!File.Exists(icon))
+                {
+                    Directory.CreateDirectory(IconDir);
+                    var t = new Thread(() => { try { App.WriteIco(App.LoadPngResource("wxv_file.png"), icon); } catch { } });
+                    t.SetApartmentState(ApartmentState.STA);
+                    t.Start(); t.Join();
+                }
+                using (var p = classes.CreateSubKey(ViewProgId))
+                {
+                    p.SetValue(null, Loc.T("WxvTypeName"));
+                    using (var di = p.CreateSubKey("DefaultIcon")) di.SetValue(null, File.Exists(icon) ? $"\"{icon}\"" : $"\"{exe}\",0");
+                    using (var c = p.CreateSubKey(@"shell\open\command")) c.SetValue(null, $"\"{exe}\" \"%1\"");
+                    using (var f = p.CreateSubKey(@"shell\open")) f.SetValue("FriendlyAppName", "WinXplorer");
+                    p.SetValue("WinXplorerSig", sig);
+                }
+                using (var x = classes.CreateSubKey(".wxv")) x.SetValue(null, ViewProgId);
+                Native.SHChangeNotify(0x08000000 /*SHCNE_ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero);
+            }
+            catch { }
+        }
+
         private static void Unregister()
         {
             using var classes = Registry.CurrentUser.OpenSubKey(@"Software\Classes", true);

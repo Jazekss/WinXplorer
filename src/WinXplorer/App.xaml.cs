@@ -127,6 +127,7 @@ namespace WinXplorer
             {
                 DefaultFileManager.Apply(false);
                 Associations.Apply(false);
+                Associations.ApplyViewFiles(false);
                 Shutdown();
                 return;
             }
@@ -154,6 +155,7 @@ namespace WinXplorer
             new System.Threading.Thread(() =>
             {
                 Associations.Apply(AppState.Settings.ArchiveOpenWith);
+                Associations.ApplyViewFiles(true);   // view.wxv opens in WinXplorer, with its own icon
                 // keeps the folder association pointing at this exe (it may have moved or been updated)
                 if (AppState.Settings.DefaultFileManager) DefaultFileManager.Apply(true);
                 Archives.CleanTemp();
@@ -182,6 +184,22 @@ namespace WinXplorer
                 var img = new DrawingImage(d);
                 img.Freeze();
                 return img;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>A PNG compiled into the app (Assets/…).</summary>
+        public static ImageSource LoadPngResource(string name)
+        {
+            try
+            {
+                var bi = new System.Windows.Media.Imaging.BitmapImage();
+                bi.BeginInit();
+                bi.UriSource = new Uri("pack://application:,,,/WinXplorer;component/Assets/" + name);
+                bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bi.EndInit();
+                bi.Freeze();
+                return bi;
             }
             catch { return null; }
         }

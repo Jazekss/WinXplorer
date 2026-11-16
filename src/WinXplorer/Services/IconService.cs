@@ -73,6 +73,7 @@ namespace WinXplorer.Services
         public static bool UsesOwnIcon(string ext)
         {
             if (string.IsNullOrEmpty(ext) || OwnIconExts.Contains(ext)) return false;
+            if (ext == FolderViews.Ext) return true;   // view.wxv: WinXplorer's own file type
             if (FileTypes.Image.Contains(ext) || FileTypes.Video.Contains(ext) || FileTypes.Svg.Contains(ext)) return false;
             if (AppState.Settings.OwnCodeIcons && FileIcons.IsCodeType(ext)) return true;
             // archives WinXplorer opens like folders get its archive folder icon

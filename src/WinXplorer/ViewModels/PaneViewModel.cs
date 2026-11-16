@@ -33,6 +33,9 @@ namespace WinXplorer.ViewModels
         public event Action<string> RequestUi;
         public void FocusAddress() => RequestUi?.Invoke("address");
         public void FocusSearch() => RequestUi?.Invoke("search");
+        public void EditFolderView() => RequestUi?.Invoke("folderview");
+        /// <summary>Set by Navigate when it opens a view.wxv: the pane shows the view even if it is switched off.</summary>
+        public bool ForceView { get; set; }
 
         public PaneViewModel(TabViewModel tab, string path)
         {
@@ -320,6 +323,8 @@ namespace WinXplorer.ViewModels
                 _forward.Clear();
             }
             var previous = _path;
+            // view.wxv opened (double-click, from Explorer): show the view even when it is switched off
+            ForceView = selectPath != null && selectPath.EndsWith("\\" + WinXplorer.Services.FolderViews.FileName, StringComparison.OrdinalIgnoreCase);
             Path = path;
             FolderUsage.Record(path);
             InArchive = Archives.Split(path) != null; OnPropertyChanged(nameof(InArchive));

@@ -79,6 +79,15 @@ namespace WinXplorer.Views
         {
             _hkRows.Clear();
             _page.Children.Add(Dim(Loc.T("HelpIntro")));
+
+            // folder views: a short how-to with the file's own icon
+            var wxv = new StackPanel();
+            wxv.Children.Add(Dim(Loc.T("HelpWxv")).With(t => t.MaxWidth = 720));
+            var wxvHead = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 8) };
+            wxvHead.Children.Add(new Image { Source = FileIcons.ViewFile(), Width = 22, Height = 22, Margin = new Thickness(0, 0, 8, 0) });
+            wxvHead.Children.Add(new TextBlock { Text = Loc.T("HelpWxvTitle"), FontWeight = FontWeights.SemiBold, FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
+            _page.Children.Add(wxvHead);
+            _page.Children.Add(CardBorder(wxv));
             Header(Loc.T("HkTitle"));
 
             var top = new DockPanel { Margin = new Thickness(0, 0, 0, 8), LastChildFill = true };

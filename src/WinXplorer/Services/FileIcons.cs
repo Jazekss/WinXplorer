@@ -86,10 +86,14 @@ namespace WinXplorer.Services
         }
 
         /// <summary>16×16 tile: coloured rounded square with the extension.</summary>
-        public static ImageSource Small(string ext) => _small.GetOrAdd(ext, e => Custom(e, true) ?? (FileTypes.Archive.Contains(e) ? Archive() : null) ?? BuildSmall(e));
+        public static ImageSource Small(string ext) => _small.GetOrAdd(ext, e => Custom(e, true) ?? (e == FolderViews.Ext ? ViewFile() : null) ?? (FileTypes.Archive.Contains(e) ? Archive() : null) ?? BuildSmall(e));
+
+        private static ImageSource _view;
+        /// <summary>The view.wxv icon (a WinXplorer folder with a wrench and a gear).</summary>
+        public static ImageSource ViewFile() => _view ??= App.LoadPngResource("wxv_file.png");
 
         /// <summary>Page with a folded corner and a coloured label (scales to any icon size).</summary>
-        public static ImageSource Large(string ext) => _large.GetOrAdd(ext, e => Custom(e, false) ?? (FileTypes.Archive.Contains(e) ? Archive() : null) ?? BuildLarge(e));
+        public static ImageSource Large(string ext) => _large.GetOrAdd(ext, e => Custom(e, false) ?? (e == FolderViews.Ext ? ViewFile() : null) ?? (FileTypes.Archive.Contains(e) ? Archive() : null) ?? BuildLarge(e));
 
         private static ImageSource _archive;
         private static readonly object _archiveLock = new();

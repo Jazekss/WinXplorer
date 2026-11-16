@@ -881,6 +881,14 @@ namespace WinXplorer
                 items.Add(mi);
             }
             items.Add(new Separator());
+            // a page for this folder (projects, categories, a gallery) – view.wxv
+            if (p != null && !p.IsThisPC && !p.InArchive)
+            {
+                var view = MI(Loc.T("WxvNew"), null, () => { if (Views.PaneView.CreateViewFile(p.Path)) p.EditFolderView(); });
+                view.Icon = new Image { Source = FileIcons.ViewFile(), Width = 16, Height = 16 };
+                items.Add(view);
+                items.Add(new Separator());
+            }
             items.Add(MI(Loc.T("EditNewList"), "\uE70F", () => OpenSettings("newfiles")));
         }
 

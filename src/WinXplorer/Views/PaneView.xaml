@@ -240,6 +240,8 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
+                <!-- a folder with a view.wxv: its page instead of the file list (or the view's settings) -->
+                <ContentControl x:Name="ViewHost" Visibility="Collapsed" Focusable="False"/>
                 <ProgressBar x:Name="Loading" Height="2" VerticalAlignment="Top" IsIndeterminate="True" BorderThickness="0" Background="Transparent"
                              Foreground="{DynamicResource AccentBrush}" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
                 <TextBlock x:Name="EmptyText" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,60,0,0" Foreground="{DynamicResource FgDimBrush}"
