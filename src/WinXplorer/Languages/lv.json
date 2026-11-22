@@ -715,5 +715,15 @@
  "ViewForSubfolders": "Lietot šo skatu arī apakšmapēm",
  "ViewForSubfoldersDone": "Apakšmapes tagad izskatās tāpat (ja vien kādu nemaini atsevišķi)",
  "QuickViewAutoPlay": "Ātrajā skatā atskaņot video un audio uzreiz",
- "QuickViewAutoPlayDesc": "Space uz video vai dziesmas to uzreiz sāk atskaņot."
+ "QuickViewAutoPlayDesc": "Space uz video vai dziesmas to uzreiz sāk atskaņot.",
+ "NameEmpty": "Ieraksti nosaukumu.",
+ "NameBadChars": "Nosaukumā nedrīkst būt šīs rakstzīmes:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Nosaukums nedrīkst beigties ar punktu vai atstarpi.",
+ "NameReserved": "\"{0}\" ir nosaukums, ko Windows patur sev.",
+ "NameTooLong": "Nosaukums ir par garu (ne vairāk kā 255 rakstzīmes).",
+ "NameExists": "\"{0}\" šajā mapē jau ir.",
+ "CopyShortPath": "Kopēt īso ceļu (%TEMP%…)",
+ "ScanAv": "Skenēt ar antivīrusu",
+ "ScanDefender": "Skenēt ar Microsoft Defender",
+ "GroupByDateTip": "Grupē sarakstu ar informāciju un mazās ikonas (lielākas ikonas netiek grupētas)."
 }

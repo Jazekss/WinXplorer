@@ -309,6 +309,22 @@ namespace WinXplorer.Views
                         }
                     case "copyPath":
                         Add(M(() => FileOps.SetClipboardText(hasFiles ? string.Join(Environment.NewLine, paths) : _vm.Path), "Ctrl+Shift+C")); break;
+                    case "copyShortPath" when !_vm.InArchive && !(_vm.IsThisPC && !hasFiles):
+                        {
+                            // only when it is shorter than the normal path (%TEMP%\…, %APPDATA%\…)
+                            var full = hasFiles ? string.Join(Environment.NewLine, paths) : _vm.Path;
+                            var shortened = hasFiles ? string.Join(Environment.NewLine, paths.Select(FileOps.ShortPath)) : FileOps.ShortPath(_vm.Path);
+                            if (shortened != full)
+                            {
+                                var sp = M(() => FileOps.SetClipboardText(shortened));
+                                sp.ToolTip = shortened;
+                                Add(sp);
+                            }
+                            break;
+                        }
+                    case "scanAv" when hasFiles && !_vm.InArchive:
+                        if (ScanMenuItem(paths, parent, cm, Loc.T(cmd.LabelKey), cmd.Glyph) is { } scan) Add(scan);
+                        break;
                     case "pinSidebar" when target != null:
                         Add(M(() => main.PinToSidebar(target))); break;
                     case "terminal" when target != null:
@@ -328,7 +344,7 @@ namespace WinXplorer.Views
                     case "newText" when !hasFiles:
                         Add(M(() => _vm.NewTextFile())); break;
                     case "properties":
-                        Add(M(() => FileOps.ShowProperties(one?.FullPath ?? (hasFiles ? paths[0] : _vm.Path)), "Alt+Enter")); break;
+                        Add(M(() => { if (hasFiles) FileOps.ShowProperties(paths); else FileOps.ShowProperties(_vm.Path); }, "Alt+Enter")); break;
                     case "windowsMenu":
                         Add(M(() => Dispatcher.BeginInvoke(DispatcherPriority.Input, () => ShowWindowsMenu(group, parent, x, y, false)))); break;
                 }

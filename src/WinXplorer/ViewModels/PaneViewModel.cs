@@ -728,6 +728,7 @@ namespace WinXplorer.ViewModels
 
         public void Rename() { if (!ReadOnlyHere()) RequestRename?.Invoke(); }
         public void ReloadAndSelect(string path) => _ = LoadAsync(new[] { path }, true);
+        public void ReloadAndSelect(IList<string> paths) => _ = LoadAsync(paths, true);
         public void Focus() => RequestFocus?.Invoke();
         public void SelectAndFocus(string path) { RequestSelect?.Invoke(new[] { path }, true); RequestFocus?.Invoke(); }
 

@@ -173,6 +173,25 @@
                             <wtk:VirtualizingWrapPanel/>
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
+                    <!-- "group by date" with small icons: a heading per day group, its icons wrapping below -->
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="6,12,10,4">
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding Name}" FontSize="14" Foreground="{DynamicResource FgBrush}"/>
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding ItemCount, StringFormat='  {0}'}" FontSize="12" VerticalAlignment="Bottom" Margin="0,0,0,1" Foreground="{DynamicResource FgFaintBrush}"/>
+                                        <Border Height="1" Margin="12,2,0,0" VerticalAlignment="Center" Background="{DynamicResource BorderBrush}"/>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                            <GroupStyle.Panel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </GroupStyle.Panel>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid Width="{Binding DataContext.TileWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"

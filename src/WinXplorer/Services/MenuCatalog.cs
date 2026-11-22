@@ -46,6 +46,8 @@ namespace WinXplorer.Services
             new("pinStart", "PinStart", "", MenuScope.Item),
             new("pinTaskbar", "PinTaskbar", "", MenuScope.Item),
             new("copyPath", "CopyPath", "", MenuScope.Both),
+            new("copyShortPath", "CopyShortPath", "\uE8C8", MenuScope.Both),
+            new("scanAv", "ScanAv", "\uE83D", MenuScope.Item),
             new("copyName", "CopyName", "", MenuScope.Item),
             new("copyTo", "CopyTo", "", MenuScope.Item),
             new("moveTo", "MoveTo", "", MenuScope.Item),
@@ -103,7 +105,7 @@ namespace WinXplorer.Services
         public static List<MenuEntry> DefaultItemMenu() => Make(
             "open", "openNewTab", "openOtherPane", "openWith", "mount", "runAsAdmin", "quickView", "openLocation", "openTarget", Separator,
             "cut", "copy", "paste", "rename", "delete", Separator,
-            "compressZip", "extractHere", "copyPath", "shortcutDesktop", "pinStart", "pinTaskbar", "pinSidebar", "terminal", Separator,
+            "compressZip", "extractHere", "scanAv", "copyPath", "copyShortPath", "shortcutDesktop", "pinStart", "pinTaskbar", "pinSidebar", "terminal", Separator,
             "properties", "windowsMenu");
 
         public static List<MenuEntry> DefaultAltMenu() => Make(
@@ -261,6 +263,19 @@ namespace WinXplorer.Services
                     After(l.Any(e => e.Id == "openLocation") ? "openLocation" : "quickView", "openTarget");
                 }
                 s.MenuVersion = 3;
+            }
+            if (s.MenuVersion < 4)
+            {
+                // v4: scan with antivirus, short path (%TEMP%\…)
+                foreach (var l in new[] { s.ItemMenu, s.AltMenu }.Concat(s.TypeMenus?.Values ?? Enumerable.Empty<List<MenuEntry>>()))
+                {
+                    if (l == null) continue;
+                    if (!l.Any(e => e.Id == "copyShortPath")) { int i = l.FindIndex(e => e.Id == "copyPath"); if (i >= 0) l.Insert(i + 1, new MenuEntry { Id = "copyShortPath" }); }
+                    if (!l.Any(e => e.Id == "scanAv")) { int i = l.FindIndex(e => e.Id == "copyPath"); l.Insert(i < 0 ? l.Count : i, new MenuEntry { Id = "scanAv" }); }
+                }
+                var b = s.BackgroundMenu;
+                if (b != null && !b.Any(e => e.Id == "copyShortPath")) { int i = b.FindIndex(e => e.Id == "copyPath"); if (i >= 0) b.Insert(i + 1, new MenuEntry { Id = "copyShortPath" }); }
+                s.MenuVersion = 4;
             }
         }
 

@@ -715,5 +715,15 @@
  "ViewForSubfolders": "Use this view for subfolders too",
  "ViewForSubfoldersDone": "Subfolders now look the same (unless you change one of them)",
  "QuickViewAutoPlay": "Play video and audio at once in Quick view",
- "QuickViewAutoPlayDesc": "Space on a video or song starts playing it right away."
+ "QuickViewAutoPlayDesc": "Space on a video or song starts playing it right away.",
+ "NameEmpty": "Type a name.",
+ "NameBadChars": "A name can't contain any of these characters:  \\ / : * ? \" < > |",
+ "NameEndsDot": "A name can't end with a dot or a space.",
+ "NameReserved": "\"{0}\" is a name Windows keeps for itself.",
+ "NameTooLong": "The name is too long (at most 255 characters).",
+ "NameExists": "\"{0}\" already exists in this folder.",
+ "CopyShortPath": "Copy short path (%TEMP%…)",
+ "ScanAv": "Scan with antivirus",
+ "ScanDefender": "Scan with Microsoft Defender",
+ "GroupByDateTip": "Groups Details and Small icons (larger icons stay ungrouped)."
 }

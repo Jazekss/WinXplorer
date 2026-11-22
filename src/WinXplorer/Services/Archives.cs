@@ -198,6 +198,7 @@ namespace WinXplorer.Services
                 if (g.Key.Length == 0) { result.AddRange(g); continue; }
                 var dir = TempFor(g.Key);
                 var wanted = g.Select(p => Split(p)!.Value.inner).Where(i => i.Length > 0).ToList();
+                try { Directory.CreateDirectory(dir); Directory.SetLastWriteTime(dir, DateTime.Now); } catch { }   // in use: not cleaned up yet
                 ExtractTo(g.Key, dir, wanted, overwrite: false);
                 result.AddRange(wanted.Select(w => Path.Combine(dir, w)));
             }
@@ -345,14 +346,35 @@ namespace WinXplorer.Services
         }
 
         /// <summary>Removes temporary extractions older than a day (called at startup).</summary>
-        public static void CleanTemp()
+        /// <summary>Removes copies taken out of archives (and folders left empty) – once they were copied where they belong.</summary>
+        public static void DeleteTemp(IEnumerable<string> paths)
         {
+            var root = TempRoot.TrimEnd('\\') + "\\";
+            foreach (var p in paths)
+            {
+                if (p == null || !p.StartsWith(root, StringComparison.OrdinalIgnoreCase)) continue;
+                try { if (Directory.Exists(p)) Directory.Delete(p, true); else if (File.Exists(p)) File.Delete(p); } catch { }
+                // empty parents up to the archives folder
+                for (var d = Path.GetDirectoryName(p); d != null && d.StartsWith(root, StringComparison.OrdinalIgnoreCase); d = Path.GetDirectoryName(d))
+                {
+                    try { if (Directory.EnumerateFileSystemEntries(d).Any()) break; Directory.Delete(d); } catch { break; }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Files taken out of archives to open, drag or copy them are temporary: a folder not used for
+        /// <paramref name="olderThan"/> (default one hour) is deleted. Runs at start and when a window closes.
+        /// </summary>
+        public static void CleanTemp(TimeSpan? olderThan = null)
+        {
+            var age = olderThan ?? TimeSpan.FromHours(1);
             try
             {
                 if (!Directory.Exists(TempRoot)) return;
                 foreach (var d in Directory.GetDirectories(TempRoot))
-                    if ((DateTime.Now - Directory.GetLastWriteTime(d)).TotalHours > 24)
-                        try { Directory.Delete(d, true); } catch { }
+                    if (DateTime.Now - Directory.GetLastWriteTime(d) > age)
+                        try { Directory.Delete(d, true); } catch { }   // files still open in a program stay until next time
             }
             catch { }
         }

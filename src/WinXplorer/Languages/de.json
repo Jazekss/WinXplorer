@@ -583,5 +583,15 @@
  "CmdBrowse": "Durchsuchen…",
  "CmdProgramHint": "Installierte App wählen oder mit Durchsuchen… eine beliebige .exe. Das Menü zeigt das Symbol des Programms.",
  "ArchivesInWinXplorer": "In WinXplorer, wie Ordner",
- "ArchivesInDefaultApp": "Im Standardprogramm"
+ "ArchivesInDefaultApp": "Im Standardprogramm",
+ "NameEmpty": "Gib einen Namen ein.",
+ "NameBadChars": "Ein Name darf keines dieser Zeichen enthalten:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Ein Name darf nicht mit einem Punkt oder Leerzeichen enden.",
+ "NameReserved": "„{0}“ ist ein von Windows reservierter Name.",
+ "NameTooLong": "Der Name ist zu lang (höchstens 255 Zeichen).",
+ "NameExists": "„{0}“ gibt es in diesem Ordner schon.",
+ "CopyShortPath": "Kurzen Pfad kopieren (%TEMP%…)",
+ "ScanAv": "Mit Virenschutz prüfen",
+ "ScanDefender": "Mit Microsoft Defender überprüfen",
+ "GroupByDateTip": "Gruppiert Details und kleine Symbole (größere Symbole bleiben ungruppiert)."
 }

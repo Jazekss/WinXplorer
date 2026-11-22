@@ -583,5 +583,15 @@
  "CmdBrowse": "Bläddra…",
  "CmdProgramHint": "Välj en installerad app eller Bläddra… efter valfri .exe. Menyn visar programmets egen ikon.",
  "ArchivesInWinXplorer": "I WinXplorer, som mappar",
- "ArchivesInDefaultApp": "I standardprogrammet"
+ "ArchivesInDefaultApp": "I standardprogrammet",
+ "NameEmpty": "Skriv ett namn.",
+ "NameBadChars": "Ett namn får inte innehålla något av dessa tecken:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Ett namn får inte sluta med punkt eller mellanslag.",
+ "NameReserved": "”{0}” är ett namn som Windows reserverar.",
+ "NameTooLong": "Namnet är för långt (högst 255 tecken).",
+ "NameExists": "”{0}” finns redan i den här mappen.",
+ "CopyShortPath": "Kopiera kort sökväg (%TEMP%…)",
+ "ScanAv": "Skanna med antivirus",
+ "ScanDefender": "Genomsök med Microsoft Defender",
+ "GroupByDateTip": "Grupperar Detaljer och Små ikoner (större ikoner grupperas inte)."
 }

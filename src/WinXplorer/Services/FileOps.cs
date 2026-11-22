@@ -74,14 +74,17 @@ namespace WinXplorer.Services
         }
 
         /// <summary>Copy/move with the native Windows progress &amp; conflict dialogs (undo supported).</summary>
-        public static void CopyOrMove(string[] src, string destDir, bool move)
+        /// <param name="done">Called on the UI thread with the full paths of what arrived in <paramref name="destDir"/> (to select them).</param>
+        public static void CopyOrMove(string[] src, string destDir, bool move, Action<List<string>> done = null)
         {
             if (src == null || src.Length == 0 || string.IsNullOrEmpty(destDir)) return;
             if (Archives.Split(destDir) != null) { Notify.Show(Loc.T("ArchiveReadOnly")); return; }
+            List<string> extracted = null;
             if (src.Any(InArchive))
             {
                 // out of an archive: extract, then copy (an archive can't give its files away)
                 try { src = Pump(() => Archives.Materialize(src)).ToArray(); } catch (Exception ex) { MessageBox.Show(ex.Message, "WinXplorer"); return; }
+                extracted = src.ToList();
                 move = false;
             }
             // dropping a folder into itself or moving within the same folder is a no-op
@@ -104,6 +107,21 @@ namespace WinXplorer.Services
                 };
                 Native.SHFileOperationW(ref op);
                 if (before != null) UndoService.CopiedOrMoved(src, destDir, move, before);
+                // the temporary copies taken out of an archive are not needed any more
+                if (extracted != null) Archives.DeleteTemp(extracted);
+                if (done != null)
+                {
+                    var arrived = new List<string>();
+                    try
+                    {
+                        var after = UndoService.Listing(destDir);
+                        if (before != null) arrived.AddRange(after.Where(n => !before.Contains(n)).Select(n => Path.Combine(destDir, n)));
+                        // replaced files (same names) are new too
+                        if (arrived.Count == 0) arrived.AddRange(src.Select(s => Path.Combine(destDir, Path.GetFileName(s.TrimEnd('\\')))).Where(p => after.Contains(Path.GetFileName(p))));
+                    }
+                    catch { }
+                    if (arrived.Count > 0) Application.Current?.Dispatcher.BeginInvoke(() => done(arrived));
+                }
             });
         }
 
@@ -136,6 +154,47 @@ namespace WinXplorer.Services
                 UndoService.Recycled(gone, when);
                 Notify.Show(Loc.F("Recycled", gone.Count == 1 ? what : Loc.Items(gone.Count)));
             });
+        }
+
+        private static readonly string[] Reserved = { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+            "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+
+        /// <summary>
+        /// What is wrong with a new name for <paramref name="currentPath"/> (null = fine). <paramref name="bad"/> marks the
+        /// characters at fault, so the rename box can colour them.
+        /// </summary>
+        public static string NameProblem(string currentPath, string name, out bool[] bad)
+        {
+            bad = new bool[name?.Length ?? 0];
+            if (string.IsNullOrWhiteSpace(name)) return Loc.T("NameEmpty");
+            var invalid = Path.GetInvalidFileNameChars();
+            bool any = false;
+            for (int i = 0; i < name.Length; i++) if (Array.IndexOf(invalid, name[i]) >= 0) { bad[i] = true; any = true; }
+            if (any) return Loc.T("NameBadChars");
+            if (name.EndsWith('.') || name.EndsWith(' '))
+            {
+                for (int i = name.Length - 1; i >= 0 && (name[i] == '.' || name[i] == ' '); i--) bad[i] = true;
+                return Loc.T("NameEndsDot");
+            }
+            var stem = name.Split('.')[0].TrimEnd();
+            if (Reserved.Contains(stem, StringComparer.OrdinalIgnoreCase))
+            {
+                for (int i = 0; i < stem.Length; i++) bad[i] = true;
+                return Loc.F("NameReserved", stem.ToUpperInvariant());
+            }
+            if (name.Length > 255) { for (int i = 255; i < name.Length; i++) bad[i] = true; return Loc.T("NameTooLong"); }
+            var dir = Path.GetDirectoryName(currentPath.TrimEnd('\\'));
+            if (!string.IsNullOrEmpty(dir))
+            {
+                var dest = Path.Combine(dir, name);
+                // another item already has this name (changing only upper / lower case of the same item is fine)
+                if (!string.Equals(dest, currentPath.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) && (File.Exists(dest) || Directory.Exists(dest)))
+                {
+                    for (int i = 0; i < bad.Length; i++) bad[i] = true;
+                    return Loc.F("NameExists", name);
+                }
+            }
+            return null;
         }
 
         public static bool Rename(string path, string newName, out string error)
@@ -488,6 +547,42 @@ namespace WinXplorer.Services
         public static void ShowProperties(string path)
         {
             Native.SHObjectProperties(MainHwnd, Native.SHOP_FILEPATH, path, null);
+        }
+
+        /// <summary>Properties of several items at once (one window with their total size, like Explorer).</summary>
+        public static void ShowProperties(IList<string> paths)
+        {
+            if (paths == null || paths.Count == 0) return;
+            // Windows' multi-item properties need items of one folder (search results may come from several)
+            var dir0 = Path.GetDirectoryName(paths[0].TrimEnd('\\'));
+            paths = paths.Where(p => string.Equals(Path.GetDirectoryName(p.TrimEnd('\\')), dir0, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (paths.Count == 1) { ShowProperties(paths[0]); return; }
+            try
+            {
+                using var m = Interop.ShellMenu.Create(MainHwnd, paths.ToArray(), Path.GetDirectoryName(paths[0].TrimEnd('\\')), false);
+                var it = m?.ReadItems(1).FirstOrDefault(i => string.Equals(i.Verb, "properties", StringComparison.OrdinalIgnoreCase));
+                if (it != null) { m.Invoke(MainHwnd, it.Id, 0, 0); return; }
+            }
+            catch { }
+            ShowProperties(paths[0]);
+        }
+
+        /// <summary>
+        /// A path written with Windows' own shortcuts: C:\Users\me\AppData\Local\Temp\x → %TEMP%\x. The address bar
+        /// understands these, so the short form can be pasted back anywhere.
+        /// </summary>
+        public static string ShortPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+            string best = null; int bestLen = 0;
+            foreach (var v in new[] { "TEMP", "LOCALAPPDATA", "APPDATA", "OneDrive", "USERPROFILE", "ProgramData", "ProgramFiles(x86)", "ProgramFiles", "windir", "PUBLIC" })
+            {
+                var val = Environment.GetEnvironmentVariable(v)?.TrimEnd('\\');
+                if (string.IsNullOrEmpty(val) || val.Length <= 3 || val.Length <= bestLen) continue;
+                if (path.Equals(val, StringComparison.OrdinalIgnoreCase) || path.StartsWith(val + "\\", StringComparison.OrdinalIgnoreCase))
+                { best = "%" + v + "%" + path[val.Length..]; bestLen = val.Length; }
+            }
+            return best ?? path;
         }
 
         public static void OpenTerminal(string dir)

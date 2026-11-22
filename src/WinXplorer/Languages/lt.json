@@ -583,5 +583,15 @@
  "CmdBrowse": "Naršyti…",
  "CmdProgramHint": "Pasirinkite įdiegtą programą arba per Naršyti… bet kurį .exe. Meniu rodo pačios programos piktogramą.",
  "ArchivesInWinXplorer": "WinXplorer, kaip aplankai",
- "ArchivesInDefaultApp": "Numatytojoje programoje"
+ "ArchivesInDefaultApp": "Numatytojoje programoje",
+ "NameEmpty": "Įveskite pavadinimą.",
+ "NameBadChars": "Pavadinime negali būti šių simbolių:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Pavadinimas negali baigtis tašku ar tarpu.",
+ "NameReserved": "„{0}“ yra Windows rezervuotas pavadinimas.",
+ "NameTooLong": "Pavadinimas per ilgas (ne daugiau kaip 255 simboliai).",
+ "NameExists": "„{0}“ šiame aplanke jau yra.",
+ "CopyShortPath": "Kopijuoti trumpą kelią (%TEMP%…)",
+ "ScanAv": "Nuskaityti antivirusine",
+ "ScanDefender": "Nuskaityti su Microsoft Defender",
+ "GroupByDateTip": "Grupuoja išsamią informaciją ir mažas piktogramas (didesnės negrupuojamos)."
 }

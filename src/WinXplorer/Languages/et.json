@@ -583,5 +583,15 @@
  "CmdBrowse": "Sirvi…",
  "CmdProgramHint": "Vali installitud rakendus või Sirvi… abil mis tahes .exe. Menüü näitab programmi enda ikooni.",
  "ArchivesInWinXplorer": "WinXploreris, nagu kaustad",
- "ArchivesInDefaultApp": "Vaikeprogrammis"
+ "ArchivesInDefaultApp": "Vaikeprogrammis",
+ "NameEmpty": "Sisesta nimi.",
+ "NameBadChars": "Nimi ei tohi sisaldada neid märke:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Nimi ei tohi lõppeda punkti ega tühikuga.",
+ "NameReserved": "„{0}“ on Windowsi reserveeritud nimi.",
+ "NameTooLong": "Nimi on liiga pikk (kuni 255 märki).",
+ "NameExists": "„{0}“ on selles kaustas juba olemas.",
+ "CopyShortPath": "Kopeeri lühike tee (%TEMP%…)",
+ "ScanAv": "Skanni viirusetõrjega",
+ "ScanDefender": "Skanni Microsoft Defenderiga",
+ "GroupByDateTip": "Rühmitab üksikasjad ja väikesed ikoonid (suuremad ikoonid jäävad rühmitamata)."
 }

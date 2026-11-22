@@ -583,5 +583,15 @@
  "CmdBrowse": "Przeglądaj…",
  "CmdProgramHint": "Wybierz zainstalowaną aplikację lub przez Przeglądaj… dowolny .exe. Menu pokazuje ikonę programu.",
  "ArchivesInWinXplorer": "W WinXplorer, jak foldery",
- "ArchivesInDefaultApp": "W programie domyślnym"
+ "ArchivesInDefaultApp": "W programie domyślnym",
+ "NameEmpty": "Wpisz nazwę.",
+ "NameBadChars": "Nazwa nie może zawierać żadnego z tych znaków:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Nazwa nie może kończyć się kropką ani spacją.",
+ "NameReserved": "„{0}” to nazwa zarezerwowana przez Windows.",
+ "NameTooLong": "Nazwa jest za długa (najwyżej 255 znaków).",
+ "NameExists": "„{0}” już istnieje w tym folderze.",
+ "CopyShortPath": "Kopiuj krótką ścieżkę (%TEMP%…)",
+ "ScanAv": "Skanuj antywirusem",
+ "ScanDefender": "Skanuj programem Microsoft Defender",
+ "GroupByDateTip": "Grupuje Szczegóły i Małe ikony (większe ikony nie są grupowane)."
 }

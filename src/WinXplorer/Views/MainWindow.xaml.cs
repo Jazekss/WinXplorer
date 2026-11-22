@@ -273,6 +273,7 @@ namespace WinXplorer
             if (!_isSecondary) VM.SaveSession();
             AppState.Save(_isSecondary);
             Preview.Clear();
+            Archives.CleanTemp(TimeSpan.FromMinutes(10));   // copies taken out of archives that nobody uses any more
         }
 
         // ================= state sync =================
@@ -831,8 +832,8 @@ namespace WinXplorer
         private void Properties_Click(object s, RoutedEventArgs e)
         {
             if (Pane == null) return;
-            var p = Pane.FirstSelected?.FullPath ?? Pane.Path;
-            if (!string.IsNullOrEmpty(p)) FileOps.ShowProperties(p);
+            if (Pane.SelectedPaths.Length > 0) { FileOps.ShowProperties(Pane.SelectedPaths); return; }
+            if (!string.IsNullOrEmpty(Pane.Path)) FileOps.ShowProperties(Pane.Path);
         }
         private void Terminal_Click(object s, RoutedEventArgs e) => FileOps.OpenTerminal(Pane?.Path);
         private void Donate_Click(object s, RoutedEventArgs e) => FileOps.OpenUrl(AppState.DonateUrl);
@@ -911,7 +912,9 @@ namespace WinXplorer
             items.Add(MI(Loc.T("Ascending"), null, () => p.SortDesc = false, !p.SortDesc));
             items.Add(MI(Loc.T("Descending"), null, () => p.SortDesc = true, p.SortDesc));
             items.Add(new Separator());
-            items.Add(MI(Loc.T("GroupByDate"), null, () => p.GroupByDate = !p.GroupByDate, p.GroupByDate));
+            var group = MI(Loc.T("GroupByDate"), null, () => p.GroupByDate = !p.GroupByDate, p.GroupByDate);
+            group.ToolTip = Loc.T("GroupByDateTip");
+            items.Add(group);
         }
 
         internal void FillViewMenu(ItemCollection items, PaneViewModel p)

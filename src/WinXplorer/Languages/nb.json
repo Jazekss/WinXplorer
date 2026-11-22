@@ -583,5 +583,15 @@
  "CmdBrowse": "Bla gjennom…",
  "CmdProgramHint": "Velg en installert app, eller Bla gjennom… etter en hvilken som helst .exe. Menyen viser programmets eget ikon.",
  "ArchivesInWinXplorer": "I WinXplorer, som mapper",
- "ArchivesInDefaultApp": "I standardprogrammet"
+ "ArchivesInDefaultApp": "I standardprogrammet",
+ "NameEmpty": "Skriv et navn.",
+ "NameBadChars": "Et navn kan ikke inneholde noen av disse tegnene:  \\ / : * ? \" < > |",
+ "NameEndsDot": "Et navn kan ikke slutte med punktum eller mellomrom.",
+ "NameReserved": "«{0}» er et navn Windows reserverer.",
+ "NameTooLong": "Navnet er for langt (maks 255 tegn).",
+ "NameExists": "«{0}» finnes allerede i denne mappen.",
+ "CopyShortPath": "Kopier kort bane (%TEMP%…)",
+ "ScanAv": "Skann med antivirus",
+ "ScanDefender": "Skann med Microsoft Defender",
+ "GroupByDateTip": "Grupperer Detaljer og Små ikoner (større ikoner grupperes ikke)."
 }

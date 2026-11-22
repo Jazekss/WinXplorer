@@ -154,6 +154,7 @@ namespace WinXplorer.Views
             {
                 case nameof(PaneViewModel.Items):
                 case nameof(PaneViewModel.ViewMode):
+                case nameof(PaneViewModel.IconSize) when _vm.GroupByDate && _vm.IsIcons && _tilesGrouped != (_vm.IconSize <= GroupMaxIcon):
                 case nameof(PaneViewModel.GroupByDate):
                     BindItems(); break;
                 case nameof(PaneViewModel.Path):
@@ -204,7 +205,13 @@ namespace WinXplorer.Views
                 other.Visibility = Visibility.Collapsed;
             }
             active.Visibility = Visibility.Visible;
-            if (active == List && _vm.GroupByDate && !_vm.IsThisPC)
+            // small icons are grouped too: the groups are stacked, each one wraps its icons (bigger icons stay ungrouped – too heavy)
+            bool groupTiles = active == Tiles && _vm.GroupByDate && !_vm.IsThisPC && _vm.IconSize <= GroupMaxIcon;
+            _tilesPanel ??= Tiles.ItemsPanel;
+            _tilesGrouped = groupTiles;
+            var wantPanel = groupTiles ? StackedGroups : _tilesPanel;
+            if (Tiles.ItemsPanel != wantPanel) { Tiles.ItemsSource = null; Tiles.ItemsPanel = wantPanel; }
+            if ((active == List || groupTiles) && _vm.GroupByDate && !_vm.IsThisPC)
             {
                 // Today / Yesterday / … headings (items are already sorted group by group)
                 var view = new System.Windows.Data.ListCollectionView(_vm.Items);
@@ -219,6 +226,14 @@ namespace WinXplorer.Views
         }
 
         private void ItemsChanged(object sender, NotifyCollectionChangedEventArgs e) => UpdateEmpty();
+
+        /// <summary>Largest icon size that is still grouped by date (Small icons).</summary>
+        public const int GroupMaxIcon = 64;
+        private ItemsPanelTemplate _tilesPanel;
+        private bool _tilesGrouped;
+        private static ItemsPanelTemplate _stacked;
+        private static ItemsPanelTemplate StackedGroups => _stacked ??= (ItemsPanelTemplate)System.Windows.Markup.XamlReader.Parse(
+            "<ItemsPanelTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><VirtualizingStackPanel/></ItemsPanelTemplate>");
 
         private void UpdateEmpty()
         {
@@ -519,9 +534,53 @@ namespace WinXplorer.Views
             box.SetResourceReference(TextBox.BorderBrushProperty, "AccentBrush");
             box.SetResourceReference(TextBox.CaretBrushProperty, "FgBrush");
             if (tile) box.Width = Math.Max(c.ActualWidth - 4, 80);
+            // a name Windows won't take: the box turns red and says why, the wrong characters marked – it stays open until fixed (Esc cancels)
+            var errText = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12, MaxWidth = 380 };
+            errText.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
+            var err = new Border
+            {
+                Child = errText, Padding = new Thickness(8, 5, 8, 6), Margin = new Thickness(0, 2, 0, 0), CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.FromRgb(0xD1, 0x34, 0x38)), Visibility = Visibility.Collapsed,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            err.SetResourceReference(Border.BackgroundProperty, "BarBrush");
+            var stack = new StackPanel();
+            stack.Children.Add(box);
+            stack.Children.Add(err);
+            string problem = null;
+            var red = new SolidColorBrush(Color.FromRgb(0xE8, 0x3B, 0x3F));
+            void Validate()
+            {
+                var n = box.Text.Trim();
+                problem = n == item.Name ? null : FileOps.NameProblem(item.FullPath, n, out var bad);
+                if (problem == null)
+                {
+                    err.Visibility = Visibility.Collapsed;
+                    box.SetResourceReference(TextBox.BorderBrushProperty, "AccentBrush");
+                    return;
+                }
+                FileOps.NameProblem(item.FullPath, n, out bad);
+                box.BorderBrush = red;
+                errText.Inlines.Clear();
+                // the name with what is wrong in red, then the reason
+                int i = 0;
+                while (i < n.Length)
+                {
+                    int j = i;
+                    while (j < n.Length && bad[j] == bad[i]) j++;
+                    var run = new System.Windows.Documents.Run(n[i..j]);
+                    if (bad[i]) { run.Foreground = red; run.FontWeight = FontWeights.Bold; run.TextDecorations = TextDecorations.Underline; }
+                    errText.Inlines.Add(run);
+                    i = j;
+                }
+                if (n.Length > 0) errText.Inlines.Add(new System.Windows.Documents.LineBreak());
+                errText.Inlines.Add(new System.Windows.Documents.Run(problem) { FontSize = 11.5 });
+                err.Visibility = Visibility.Visible;
+            }
+            box.TextChanged += (_, _) => Validate();
             var pop = new System.Windows.Controls.Primitives.Popup
             {
-                PlacementTarget = tile ? c : tb, AllowsTransparency = true, StaysOpen = false, Child = box,
+                PlacementTarget = tile ? c : tb, AllowsTransparency = true, StaysOpen = false, Child = stack,
                 Placement = tile ? System.Windows.Controls.Primitives.PlacementMode.Relative : System.Windows.Controls.Primitives.PlacementMode.Relative,
                 HorizontalOffset = tile ? 2 : -3, VerticalOffset = tile ? tb.TranslatePoint(new Point(), c).Y - 2 : -2,
             };
@@ -529,6 +588,17 @@ namespace WinXplorer.Views
             void Finish(bool commit)
             {
                 if (done) return;
+                if (commit && problem != null)
+                {
+                    // not saved and not cancelled: back to the box until the name is fixed or Esc is pressed
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (done) return;
+                        if (!pop.IsOpen) pop.IsOpen = true;
+                        box.Focus(); Keyboard.Focus(box);
+                    }), System.Windows.Threading.DispatcherPriority.Input);
+                    return;
+                }
                 done = true;
                 pop.IsOpen = false;
                 lb.RemoveHandler(ScrollViewer.ScrollChangedEvent, (ScrollChangedEventHandler)OnScroll);
@@ -541,7 +611,7 @@ namespace WinXplorer.Views
                 }
                 FocusList();
             }
-            void OnScroll(object s, ScrollChangedEventArgs e) { if (e.VerticalChange != 0 || e.HorizontalChange != 0) Finish(true); }
+            void OnScroll(object s, ScrollChangedEventArgs e) { if ((e.VerticalChange != 0 || e.HorizontalChange != 0) && problem == null) Finish(true); }
             box.PreviewKeyDown += (_, e) =>
             {
                 if (e.Key == Key.Enter) { e.Handled = true; Finish(true); }
@@ -803,7 +873,8 @@ namespace WinXplorer.Views
             switch (Hotkeys.Match(HkScope.Pane, e))
             {
                 case "Properties":
-                    FileOps.ShowProperties(_vm.FirstSelected?.FullPath ?? _vm.Path); e.Handled = true; break;
+                    if (_vm.SelectedPaths.Length > 0) FileOps.ShowProperties(_vm.SelectedPaths); else FileOps.ShowProperties(_vm.Path);
+                    e.Handled = true; break;
                 case "Open":
                     OpenSelected(); e.Handled = true; break;
                 case "Delete":
@@ -904,7 +975,12 @@ namespace WinXplorer.Views
             if (target == null || e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
             var eff = DropEffectFor(e, target);
             if (eff == DragDropEffects.Link) { FileOps.CreateShortcuts(files, target); return; }
-            FileOps.CopyOrMove(files, target, eff == DragDropEffects.Move);
+            // dropped into the folder on screen: what arrived stays selected, so it's easy to see
+            var here = _vm.Path;
+            FileOps.CopyOrMove(files, target, eff == DragDropEffects.Move, arrived =>
+            {
+                if (string.Equals(_vm.Path?.TrimEnd('\\'), target.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) _vm.ReloadAndSelect(arrived);
+            });
         }
 
         // ================= navigation row =================

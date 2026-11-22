@@ -85,17 +85,28 @@ namespace WinXplorer.Views
             }
 
             // select what it touches (items scrolled out of view keep their state)
-            foreach (var c in _mqPanel.Children.OfType<ListBoxItem>())
+            foreach (var c in Containers(_mqPanel))
             {
                 if (!c.IsVisible) continue;
                 Rect b;
                 try { b = c.TransformToAncestor(sv).TransformBounds(new Rect(c.RenderSize)); } catch { continue; }
                 b.Offset(sv.HorizontalOffset, sv.VerticalOffset);
-                var item = _mqList.ItemContainerGenerator.ItemFromContainer(c);
-                if (item == DependencyProperty.UnsetValue) continue;
+                var item = c.DataContext;   // grouped lists keep their rows inside the groups – the row's data is the item
+                if (item == null) continue;
                 bool hit = b.IntersectsWith(rc);
                 bool want = _mqBase.Contains(item) ? !hit : hit;
                 if (c.IsSelected != want) c.IsSelected = want;
+            }
+        }
+
+        /// <summary>The rows on screen – directly in the panel, or inside the date groups ("group by date").</summary>
+        private static IEnumerable<ListBoxItem> Containers(DependencyObject root)
+        {
+            for (int i = 0, n = VisualTreeHelper.GetChildrenCount(root); i < n; i++)
+            {
+                var ch = VisualTreeHelper.GetChild(root, i);
+                if (ch is ListBoxItem li) { yield return li; continue; }
+                foreach (var x in Containers(ch)) yield return x;
             }
         }
 

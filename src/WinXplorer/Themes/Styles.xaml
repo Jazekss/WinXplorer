@@ -175,7 +175,10 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border Background="{DynamicResource ScrollThumbBrush}" CornerRadius="3"/>
+                    <!-- the visible bar stays slim; the whole strip around it can be grabbed -->
+                    <Border Background="Transparent">
+                        <Border Background="{DynamicResource ScrollThumbBrush}" CornerRadius="3" Margin="1.5"/>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -189,9 +192,11 @@
         </Setter>
     </Style>
     <Style TargetType="ScrollBar">
-        <Setter Property="Width" Value="10"/>
-        <Setter Property="MinWidth" Value="10"/>
+        <!-- wide enough to grab, and on the window's edge the scroll bar wins over the resize border -->
+        <Setter Property="Width" Value="13"/>
+        <Setter Property="MinWidth" Value="13"/>
         <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ScrollBar">
@@ -209,8 +214,8 @@
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto"/>
                 <Setter Property="MinWidth" Value="0"/>
-                <Setter Property="Height" Value="10"/>
-                <Setter Property="MinHeight" Value="10"/>
+                <Setter Property="Height" Value="13"/>
+                <Setter Property="MinHeight" Value="13"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
